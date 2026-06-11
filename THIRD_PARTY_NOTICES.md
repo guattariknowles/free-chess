@@ -5,6 +5,8 @@
 - Expo，MIT License
 - React，MIT License
 - React Native，MIT License
+- React Native Async Storage，MIT License
+- React Native Web，MIT License
 - chess.js，BSD 2-Clause License
 
 完整依赖版本见 `package-lock.json`。各依赖仍受其原始许可证约束。

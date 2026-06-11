@@ -49,6 +49,12 @@ export type GameSnapshot = {
   status: GameStatus;
 };
 
+export type ReplayPosition = {
+  move: LegalMove | null;
+  ply: number;
+  snapshot: GameSnapshot;
+};
+
 export type MoveAttempt =
   | {
       move: LegalMove;
@@ -144,7 +150,7 @@ function getStatus(chess: Chess): GameStatus {
 
 export class ChessGame {
   private readonly chess: Chess;
-  private readonly initialFen?: string;
+  private initialFen?: string;
 
   constructor(fen?: string) {
     this.initialFen = fen;
@@ -193,6 +199,61 @@ export class ChessGame {
       moveCount: history.length,
       status: getStatus(this.chess),
     };
+  }
+
+  getHeaders(): Record<string, string> {
+    return this.chess.getHeaders();
+  }
+
+  getPgn(headers: Record<string, string> = {}): string {
+    Object.entries(headers).forEach(([key, value]) => {
+      this.chess.setHeader(key, value);
+    });
+
+    return this.chess.pgn({ maxWidth: 80, newline: '\n' });
+  }
+
+  getReplayPositions(): ReplayPosition[] {
+    const history = this.chess.history({ verbose: true });
+    const startingFen =
+      history[0]?.before ?? this.initialFen ?? new Chess().fen();
+    const replay = new ChessGame(startingFen);
+    const positions: ReplayPosition[] = [
+      {
+        move: null,
+        ply: 0,
+        snapshot: replay.getSnapshot(),
+      },
+    ];
+
+    history.forEach((move, index) => {
+      const result = replay.move(
+        move.from,
+        move.to,
+        move.promotion as PromotionPiece | undefined,
+      );
+
+      if (!result.success) {
+        throw new Error(`无法回放第 ${index + 1} 步`);
+      }
+
+      positions.push({
+        move: result.move,
+        ply: index + 1,
+        snapshot: result.snapshot,
+      });
+    });
+
+    return positions;
+  }
+
+  loadPgn(pgn: string): GameSnapshot {
+    this.chess.loadPgn(pgn);
+    const history = this.chess.history({ verbose: true });
+
+    this.initialFen = history[0]?.before ?? this.chess.fen();
+
+    return this.getSnapshot();
   }
 
   move(

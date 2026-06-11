@@ -14,6 +14,8 @@
     "src/game/clockState.ts",
     "src/game/clockState.test.ts",
     "src/game/chessState.ts",
-    "src/game/chessState.test.ts"
+    "src/game/chessState.test.ts",
+    "src/game/gameRecord.ts",
+    "src/game/gameRecord.test.ts"
   ]
 }

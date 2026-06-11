@@ -34,6 +34,14 @@ import {
   type LegalMove,
   type PromotionPiece,
 } from '../game/chessState';
+import {
+  createGameRecord,
+  type GameRecord,
+  type GameResult,
+} from '../game/gameRecord';
+import { saveGameRecord } from '../game/gameLibraryStorage';
+import { GameLibraryScreen } from './GameLibraryScreen';
+import { ReviewScreen } from './ReviewScreen';
 
 type PendingPromotion = {
   from: Square;
@@ -89,8 +97,40 @@ function getBoardOutcome(snapshot: GameSnapshot): GameOutcome | null {
   return null;
 }
 
+function getPgnDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}.${month}.${day}`;
+}
+
+function getOutcomeResult(outcome: GameOutcome | null): GameResult {
+  if (!outcome) {
+    return '*';
+  }
+
+  if (outcome.reason === 'draw') {
+    return '1/2-1/2';
+  }
+
+  return outcome.winner === 'w' ? '1-0' : '0-1';
+}
+
+function getTimeControl(config: ClockConfig): string {
+  if (config.initialTimeMs === null) {
+    return '-';
+  }
+
+  return `${Math.round(config.initialTimeMs / 1000)}+${
+    config.incrementMs / 1000
+  }`;
+}
+
 export function PlayScreen() {
   const gameRef = useRef(new ChessGame());
+  const gameStartedAtRef = useRef(new Date());
+  const currentRecordIdRef = useRef<string | null>(null);
   const clockRef = useRef(
     createClockState(NO_CLOCK_CONFIG, Date.now()),
   );
@@ -110,7 +150,10 @@ export function PlayScreen() {
     useState<PendingPromotion | null>(null);
   const [outcome, setOutcome] = useState<GameOutcome | null>(null);
   const [resultVisible, setResultVisible] = useState(false);
-  const [reviewVisible, setReviewVisible] = useState(false);
+  const [libraryVisible, setLibraryVisible] = useState(false);
+  const [reviewRecord, setReviewRecord] = useState<GameRecord | null>(null);
+  const [reviewReturn, setReviewReturn] =
+    useState<'library' | 'play'>('play');
   const [clockSettingsVisible, setClockSettingsVisible] = useState(false);
   const { height, width } = useWindowDimensions();
   const boardSize = Math.floor(
@@ -139,6 +182,30 @@ export function PlayScreen() {
     setSelectedSquare(null);
     setPendingPromotion(null);
   };
+
+  function buildCurrentRecord(): GameRecord {
+    const result = getOutcomeResult(outcome);
+    const pgn = gameRef.current.getPgn({
+      Black: '黑方',
+      Date: getPgnDate(gameStartedAtRef.current),
+      Event: 'Free Chess 本地对局',
+      Result: result,
+      Site: 'Local',
+      TimeControl: getTimeControl(clockConfig),
+      White: '白方',
+    });
+    const record = createGameRecord({
+      clockLabel: getClockConfigLabel(clockConfig),
+      createdAt: gameStartedAtRef.current.toISOString(),
+      id: currentRecordIdRef.current ?? undefined,
+      pgn,
+      result,
+      source: 'played',
+    });
+
+    currentRecordIdRef.current = record.id;
+    return record;
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -170,6 +237,31 @@ export function PlayScreen() {
     setFeedback(`${COLOR_NAMES[clock.timedOutColor]}超时`);
     setResultVisible(true);
   }, [clock.timedOutColor, outcome]);
+
+  useEffect(() => {
+    if (!outcome) {
+      return;
+    }
+
+    let active = true;
+    const record = buildCurrentRecord();
+
+    saveGameRecord(record)
+      .then(() => {
+        if (active) {
+          setFeedback(`${outcome.description}，棋谱已自动保存`);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setFeedback(`${outcome.description}，但自动保存棋谱失败`);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [outcome]);
 
   const finishGame = (result: GameOutcome, now = Date.now()) => {
     applyClockState(stopClock(clockRef.current, now));
@@ -330,13 +422,16 @@ export function PlayScreen() {
     const nextClock = createClockState(config, Date.now());
 
     setSnapshot(gameRef.current.reset());
+    gameStartedAtRef.current = new Date();
+    currentRecordIdRef.current = null;
     setClockConfig(config);
     applyClockState(nextClock);
     clockHistoryRef.current = [];
     setFlipped(false);
     setOutcome(null);
     setResultVisible(false);
-    setReviewVisible(false);
+    setReviewRecord(null);
+    setLibraryVisible(false);
     clearSelection();
     setFeedback(
       config.initialTimeMs === null
@@ -445,13 +540,30 @@ export function PlayScreen() {
     commitMove(pendingPromotion.from, pendingPromotion.to, promotion);
   };
 
-  if (reviewVisible && outcome) {
+  if (reviewRecord) {
     return (
-      <ReviewPlaceholder
-        moveCount={snapshot.moveCount}
-        onBack={() => setReviewVisible(false)}
+      <ReviewScreen
+        onBack={() => {
+          setReviewRecord(null);
+          setLibraryVisible(reviewReturn === 'library');
+        }}
         onRestart={() => startNewGame()}
-        outcome={outcome}
+        record={reviewRecord}
+      />
+    );
+  }
+
+  if (libraryVisible) {
+    return (
+      <GameLibraryScreen
+        canSaveCurrent={snapshot.moveCount > 0}
+        onBack={() => setLibraryVisible(false)}
+        onBuildCurrentRecord={buildCurrentRecord}
+        onOpenRecord={(record) => {
+          setReviewReturn('library');
+          setLibraryVisible(false);
+          setReviewRecord(record);
+        }}
       />
     );
   }
@@ -473,16 +585,28 @@ export function PlayScreen() {
               {getClockConfigLabel(clockConfig)} · 已走 {snapshot.moveCount} 步
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setClockSettingsVisible(true)}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && styles.pressedButton,
-            ]}
-          >
-            <Text style={styles.headerButtonText}>棋钟设置</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setLibraryVisible(true)}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.pressedButton,
+              ]}
+            >
+              <Text style={styles.headerButtonText}>棋谱</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setClockSettingsVisible(true)}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && styles.pressedButton,
+              ]}
+            >
+              <Text style={styles.headerButtonText}>棋钟</Text>
+            </Pressable>
+          </View>
         </View>
 
         <PlayerClockPanel
@@ -648,7 +772,9 @@ export function PlayScreen() {
               accessibilityRole="button"
               onPress={() => {
                 setResultVisible(false);
-                setReviewVisible(true);
+                const record = buildCurrentRecord();
+                setReviewReturn('play');
+                setReviewRecord(record);
               }}
               style={styles.secondaryButton}
             >
@@ -702,52 +828,6 @@ function ControlButton({
   );
 }
 
-type ReviewPlaceholderProps = {
-  moveCount: number;
-  onBack: () => void;
-  onRestart: () => void;
-  outcome: GameOutcome;
-};
-
-function ReviewPlaceholder({
-  moveCount,
-  onBack,
-  onRestart,
-  outcome,
-}: ReviewPlaceholderProps) {
-  return (
-    <View style={styles.reviewScreen}>
-      <Text style={styles.reviewEyebrow}>棋局回顾</Text>
-      <Text style={styles.reviewTitle}>{outcome.title}</Text>
-      <View style={styles.reviewCard}>
-        <Text style={styles.reviewCardTitle}>当前可用信息</Text>
-        <Text style={styles.reviewLine}>结束原因：{outcome.description}</Text>
-        <Text style={styles.reviewLine}>本局步数：{moveCount}</Text>
-      </View>
-      <View style={styles.developmentNotice}>
-        <Text style={styles.developmentTitle}>回放功能开发中</Text>
-        <Text style={styles.developmentText}>
-          当前版本还没有 PGN 棋谱回放和本地引擎分析，因此这里不会生成虚假的复盘结论。
-        </Text>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onBack}
-        style={styles.secondaryButton}
-      >
-        <Text style={styles.secondaryButtonText}>返回最终棋盘</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onRestart}
-        style={styles.primaryButton}
-      >
-        <Text style={styles.primaryButtonText}>开始新对局</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: {
     backgroundColor: '#171a18',
@@ -789,6 +869,10 @@ const styles = StyleSheet.create({
     color: '#e5e2d9',
     fontSize: 12,
     fontWeight: '700',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 7,
   },
   boardWrap: {
     alignItems: 'center',
@@ -974,62 +1058,5 @@ const styles = StyleSheet.create({
     color: '#d1a356',
     fontSize: 13,
     fontWeight: '700',
-  },
-  reviewScreen: {
-    backgroundColor: '#171a18',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  reviewEyebrow: {
-    color: '#d49a43',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-  },
-  reviewTitle: {
-    color: '#f4f1e8',
-    fontSize: 30,
-    fontWeight: '900',
-    marginTop: 6,
-  },
-  reviewCard: {
-    backgroundColor: '#242924',
-    borderColor: '#404740',
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 24,
-    padding: 16,
-  },
-  reviewCardTitle: {
-    color: '#f1eee5',
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 9,
-  },
-  reviewLine: {
-    color: '#b6bdb4',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  developmentNotice: {
-    backgroundColor: '#29271f',
-    borderColor: '#625338',
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 10,
-    marginTop: 12,
-    padding: 16,
-  },
-  developmentTitle: {
-    color: '#e8c17c',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  developmentText: {
-    color: '#bbb3a3',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 6,
   },
 });

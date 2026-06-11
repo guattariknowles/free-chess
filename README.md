@@ -2,7 +2,7 @@
 
 Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋应用。
 
-项目坚持离线优先、无广告、无账号、无追踪，不依赖付费 API 或云端模型。当前版本专注于稳定的标准国际象棋规则、棋钟和面对面双人操作。
+项目坚持离线优先、无广告、无账号、无追踪，不依赖付费 API 或云端模型。当前版本专注于标准国际象棋规则、棋钟、本地棋谱和面对面双人操作。
 
 ## 开发与维护声明
 
@@ -21,6 +21,10 @@ Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋
 - 每步加秒、暂停、继续和超时判负
 - 黑白双方独立棋钟、认输和悔棋操作
 - 对局结束结果弹窗
+- 自动生成、复制和导入 PGN
+- 对局结束自动保存和进行中手动保存
+- 离线本地棋谱库与删除管理
+- 历史棋局逐步回放和棋盘翻转
 
 ## 技术栈
 
@@ -28,6 +32,7 @@ Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋
 - React Native
 - TypeScript
 - chess.js
+- AsyncStorage
 
 ## 本地运行
 
@@ -42,20 +47,24 @@ npm run android
 
 ## 项目状态
 
-阶段 1 棋盘与规则、阶段 2 棋钟已经完成。当前开发阶段是 PGN 保存、导入、本地棋谱库和回放。
+阶段 1 棋盘与规则、阶段 2 棋钟、阶段 3 PGN 与棋谱已经完成。下一阶段是本地用户档案与自定义局面。
 
 完整计划见 [ROADMAP.md](ROADMAP.md)。
 
 ## 下载 Android 测试版
 
 - [GitHub Releases](https://github.com/guattariknowles/free-chess/releases)
-- [直接下载 Free Chess 1.1.0 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.1.0/free-chess-1.1.0-2026-06-11-eas.apk)
+- [直接下载 Free Chess 1.2.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.2.0/free-chess-1.2.0-2026-06-11-local.apk)
 
-`1.1.0` 的 SHA-256：
+`1.2.0` 本地测试 APK 的 SHA-256：
 
 ```text
-4E09EA919B77701F5F0F40C767A781185B86701A7C0E3109EA219144C147A015
+F3845CC6400E1408D57BBCBA8A50385B7C3CEA61E4E185FD7EFD50DE880C829F
 ```
+
+此 APK 使用本机 Android 调试签名。若手机上安装的是 EAS 版，Android
+可能提示签名不一致；请先卸载旧版再安装。本版本首次加入本地棋谱，
+卸载旧版不会丢失旧版棋谱，因为旧版尚未提供棋谱保存功能。
 
 ## 隐私与联网
 

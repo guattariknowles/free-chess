@@ -12,6 +12,8 @@ type Assert = {
   deepEqual: (actual: unknown, expected: unknown) => void;
   equal: (actual: unknown, expected: unknown) => void;
   fail: (message: string) => never;
+  match: (actual: string, expected: RegExp) => void;
+  throws: (callback: () => void, expected?: RegExp) => void;
 };
 
 const test = require('node:test') as TestFunction;
@@ -148,4 +150,48 @@ test('blocks moves after the game has ended', () => {
     assert.fail('expected the move to be blocked after game over');
   }
   assert.equal(game.getSnapshot().fen, before);
+});
+
+test('exports and imports PGN without changing the final position', () => {
+  const original = new ChessGame();
+  original.move('e2', 'e4');
+  original.move('e7', 'e5');
+  original.move('g1', 'f3');
+
+  const pgn = original.getPgn({
+    Black: '黑方',
+    Event: '测试对局',
+    Result: '*',
+    White: '白方',
+  });
+  const imported = new ChessGame();
+  imported.loadPgn(pgn);
+
+  assert.match(pgn, /1\. e4 e5 2\. Nf3/);
+  assert.equal(imported.getSnapshot().fen, original.getSnapshot().fen);
+  assert.equal(imported.getHeaders().Event, '测试对局');
+});
+
+test('creates a replay position for the start and every move', () => {
+  const game = new ChessGame();
+  game.move('d2', 'd4');
+  game.move('d7', 'd5');
+  game.move('c1', 'f4');
+
+  const positions = game.getReplayPositions();
+
+  assert.equal(positions.length, 4);
+  assert.equal(positions[0].ply, 0);
+  assert.equal(positions[0].snapshot.moveCount, 0);
+  assert.equal(positions[3].move?.san, 'Bf4');
+  assert.equal(positions[3].snapshot.fen, game.getSnapshot().fen);
+});
+
+test('rejects PGN containing an illegal move', () => {
+  const game = new ChessGame();
+
+  assert.throws(
+    () => game.loadPgn('1. e4 e5 2. Ke3'),
+    /Invalid move in PGN/,
+  );
 });
