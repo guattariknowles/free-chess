@@ -46,8 +46,11 @@
 ## EAS 与发布状态
 
 - EAS preview：等待用户明确授权把项目上传到 Expo EAS。
-- GitHub Release：尚未创建。
-- 当前只能标记为“本地测试版已完成”，不能标记为完整发布。
+- GitHub Release：
+  `https://github.com/guattariknowles/free-chess/releases/tag/v1.5.0`
+- 本地 APK：
+  `https://github.com/guattariknowles/free-chess/releases/download/v1.5.0/free-chess-1.5.0-2026-06-12-local.apk`
+- 当前只能标记为“本地测试版已发布”，不能标记为 EAS 完整发布。
 
 ## 已知风险
 

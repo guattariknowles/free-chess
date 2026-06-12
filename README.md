@@ -70,6 +70,7 @@ npm run android
 ## 下载 Android 测试版
 
 - [GitHub Releases](https://github.com/guattariknowles/free-chess/releases)
+- [直接下载 Free Chess 1.5.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.5.0/free-chess-1.5.0-2026-06-12-local.apk)
 - [直接下载 Free Chess 1.4.0 EAS APK](https://github.com/guattariknowles/free-chess/releases/download/v1.4.0/free-chess-1.4.0-2026-06-12-eas.apk)
 - [直接下载 Free Chess 1.4.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.4.0/free-chess-1.4.0-2026-06-12-local.apk)
 - [直接下载 Free Chess 1.3.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.3.0/free-chess-1.3.0-2026-06-12-local.apk)
@@ -79,6 +80,12 @@ npm run android
 
 ```text
 E4B6B2D5D5A45D7B2B40022FB5015FCFA9560246FF7D8FBA3EFB570ADCD43F28
+```
+
+`1.5.0` 本地测试 APK 的 SHA-256：
+
+```text
+75341F2E1114AF3A1773FAABCB9F07088F9646D19A93C77EBBB883D75A4C41B2
 ```
 
 `1.4.0` EAS APK 的 SHA-256：
