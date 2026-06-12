@@ -9,10 +9,15 @@ import {
 } from 'react-native';
 
 import type { BoardPiece, LegalMove } from '../../game/chessState';
-import { getBoardSquares, isLightSquare } from './boardCoordinates';
+import {
+  getBoardSquares,
+  isLightSquare,
+  shouldRotatePieceForFaceToFace,
+} from './boardCoordinates';
 
 type ChessBoardProps = {
   board: BoardPiece[];
+  faceToFacePieces?: boolean;
   flipped: boolean;
   highlightedSquares?: Square[];
   lastMove: LegalMove | null;
@@ -43,6 +48,7 @@ const PIECES: Record<Color, Record<PieceSymbol, string>> = {
 
 function ChessBoardComponent({
   board,
+  faceToFacePieces = false,
   flipped,
   highlightedSquares = [],
   lastMove,
@@ -154,6 +160,12 @@ function ChessBoardComponent({
                       piece.color === 'w'
                         ? styles.whitePiece
                         : styles.blackPiece,
+                      faceToFacePieces &&
+                        shouldRotatePieceForFaceToFace(
+                          piece.color,
+                          flipped,
+                        ) &&
+                        styles.facingAwayPiece,
                     ]}
                   >
                     {PIECES[piece.color][piece.type]}
@@ -224,6 +236,9 @@ const styles = StyleSheet.create({
     textShadowColor: '#eef0e7',
     textShadowOffset: { height: 0, width: 0 },
     textShadowRadius: 1,
+  },
+  facingAwayPiece: {
+    transform: [{ rotate: '180deg' }],
   },
   moveTarget: {
     backgroundColor: 'rgba(24, 43, 27, 0.45)',

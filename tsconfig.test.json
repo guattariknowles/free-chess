@@ -11,6 +11,9 @@
   },
   "include": [
     "src/components/Board/boardCoordinates.ts",
+    "src/components/Board/boardCoordinates.test.ts",
+    "src/data/lessons/lessonCatalog.ts",
+    "src/data/lessons/lessonCatalog.test.ts",
     "src/game/clockState.ts",
     "src/game/clockState.test.ts",
     "src/game/chessState.ts",

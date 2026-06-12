@@ -54,6 +54,7 @@ import {
 import type { UserProfile } from '../game/userProfile';
 import { loadUserProfiles } from '../game/userProfileStorage';
 import { GameLibraryScreen } from './GameLibraryScreen';
+import { LearnScreen } from './LearnScreen';
 import { PositionEditorScreen } from './PositionEditorScreen';
 import { ReviewScreen } from './ReviewScreen';
 import { SeriesDetailScreen } from './SeriesDetailScreen';
@@ -170,6 +171,7 @@ export function PlayScreen() {
   const [outcome, setOutcome] = useState<GameOutcome | null>(null);
   const [resultVisible, setResultVisible] = useState(false);
   const [libraryVisible, setLibraryVisible] = useState(false);
+  const [learnVisible, setLearnVisible] = useState(false);
   const [profilesVisible, setProfilesVisible] = useState(false);
   const [positionEditorVisible, setPositionEditorVisible] = useState(false);
   const [seriesSetupVisible, setSeriesSetupVisible] = useState(false);
@@ -960,6 +962,10 @@ export function PlayScreen() {
     );
   }
 
+  if (learnVisible) {
+    return <LearnScreen onBack={() => setLearnVisible(false)} />;
+  }
+
   const undoBlockedByOutcome =
     outcome?.reason === 'resignation' || outcome?.reason === 'timeout';
   const subtitle = activeSeries
@@ -1018,6 +1024,7 @@ export function PlayScreen() {
         <View style={styles.boardWrap}>
           <ChessBoard
             board={snapshot.board}
+            faceToFacePieces
             flipped={flipped}
             lastMove={snapshot.lastMove}
             legalMoves={legalMoves}
@@ -1093,6 +1100,10 @@ export function PlayScreen() {
 
       <View style={styles.bottomNavigation}>
         <BottomNavigationItem active label="对局" onPress={() => {}} />
+        <BottomNavigationItem
+          label="学习"
+          onPress={() => setLearnVisible(true)}
+        />
         <BottomNavigationItem
           label="棋谱"
           onPress={() => setLibraryVisible(true)}

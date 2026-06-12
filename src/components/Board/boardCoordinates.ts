@@ -1,4 +1,4 @@
-import type { Square } from 'chess.js';
+import type { Color, Square } from 'chess.js';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const RANKS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
@@ -17,4 +17,11 @@ export function isLightSquare(square: Square): boolean {
   const rank = Number(square[1]);
 
   return (fileIndex + rank) % 2 === 0;
+}
+
+export function shouldRotatePieceForFaceToFace(
+  color: Color,
+  flipped: boolean,
+): boolean {
+  return flipped ? color === 'w' : color === 'b';
 }
