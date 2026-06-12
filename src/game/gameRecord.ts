@@ -7,26 +7,36 @@ export type GameResult = '0-1' | '1-0' | '1/2-1/2' | '*';
 export type GameRecordSource = 'imported' | 'played';
 
 export type GameRecord = {
+  blackProfileId?: string;
   blackName: string;
   clockLabel: string;
   createdAt: string;
   id: string;
+  initialFen?: string;
   moveCount: number;
   pgn: string;
   result: GameResult;
+  seriesId?: string;
+  seriesGameNumber?: number;
   source: GameRecordSource;
   title: string;
   updatedAt: string;
+  whiteProfileId?: string;
   whiteName: string;
 };
 
 type CreateGameRecordOptions = {
+  blackProfileId?: string;
   clockLabel?: string;
   createdAt?: string;
   id?: string;
+  initialFen?: string;
   pgn: string;
   result?: GameResult;
+  seriesId?: string;
+  seriesGameNumber?: number;
   source: GameRecordSource;
+  whiteProfileId?: string;
 };
 
 const VALID_RESULTS = new Set<GameResult>([
@@ -51,12 +61,17 @@ export function isGameResult(value: string | undefined): value is GameResult {
 }
 
 export function createGameRecord({
+  blackProfileId,
   clockLabel = '未记录',
   createdAt = new Date().toISOString(),
   id,
+  initialFen,
   pgn,
   result,
+  seriesId,
+  seriesGameNumber,
   source,
+  whiteProfileId,
 }: CreateGameRecordOptions): GameRecord {
   const normalizedPgn = pgn.trim();
 
@@ -81,16 +96,21 @@ export function createGameRecord({
   const finalResult = result ?? parsedResult;
 
   return {
+    blackProfileId,
     blackName,
     clockLabel,
     createdAt,
     id: id ?? createId(createdAt),
+    initialFen,
     moveCount: game.getSnapshot().moveCount,
     pgn: normalizedPgn,
     result: finalResult,
+    seriesGameNumber,
+    seriesId,
     source,
     title: `${whiteName} vs ${blackName}`,
     updatedAt: new Date().toISOString(),
+    whiteProfileId,
     whiteName,
   };
 }

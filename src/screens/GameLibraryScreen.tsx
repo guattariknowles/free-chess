@@ -21,12 +21,21 @@ import {
   loadGameRecords,
   saveGameRecord,
 } from '../game/gameLibraryStorage';
+import {
+  getSeriesResultLabel,
+  type SeriesRecord,
+} from '../game/series';
+import {
+  deleteSeriesRecord,
+  loadSeriesRecords,
+} from '../game/seriesStorage';
 
 type GameLibraryScreenProps = {
   canSaveCurrent: boolean;
   onBack: () => void;
   onBuildCurrentRecord: () => GameRecord;
   onOpenRecord: (record: GameRecord) => void;
+  onOpenSeries: (series: SeriesRecord) => void;
 };
 
 export function GameLibraryScreen({
@@ -34,8 +43,10 @@ export function GameLibraryScreen({
   onBack,
   onBuildCurrentRecord,
   onOpenRecord,
+  onOpenSeries,
 }: GameLibraryScreenProps) {
   const [records, setRecords] = useState<GameRecord[]>([]);
+  const [seriesRecords, setSeriesRecords] = useState<SeriesRecord[]>([]);
   const [importVisible, setImportVisible] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -44,13 +55,15 @@ export function GameLibraryScreen({
   useEffect(() => {
     let active = true;
 
-    loadGameRecords()
-      .then((loaded) => {
+    Promise.all([loadGameRecords(), loadSeriesRecords()])
+      .then(([loaded, loadedSeries]) => {
         if (active) {
           setRecords(loaded);
+          setSeriesRecords(loadedSeries);
+          const total = loaded.length + loadedSeries.length;
           setFeedback(
-            loaded.length > 0
-              ? `本机已保存 ${loaded.length} 盘棋`
+            total > 0
+              ? `本机已保存 ${loaded.length} 盘单局和 ${loadedSeries.length} 组系列赛`
               : '本机还没有保存棋谱',
           );
         }
@@ -138,6 +151,29 @@ export function GameLibraryScreen({
     ]);
   };
 
+  const confirmDeleteSeries = (series: SeriesRecord) => {
+    Alert.alert(
+      '删除整组系列赛？',
+      `将同时删除其中 ${series.games.length} 盘棋，删除后无法恢复。`,
+      [
+        { style: 'cancel', text: '取消' },
+        {
+          onPress: async () => {
+            try {
+              const next = await deleteSeriesRecord(series.id);
+              setSeriesRecords(next);
+              setFeedback('系列赛及其全部单局已删除');
+            } catch {
+              setFeedback('删除系列赛失败');
+            }
+          },
+          style: 'destructive',
+          text: '删除整组',
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -149,7 +185,7 @@ export function GameLibraryScreen({
           <Text style={styles.backButtonText}>返回棋盘</Text>
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.eyebrow}>PART 3</Text>
+          <Text style={styles.eyebrow}>PART 3 + 4</Text>
           <Text style={styles.title}>本地棋谱</Text>
         </View>
       </View>
@@ -178,11 +214,58 @@ export function GameLibraryScreen({
         />
       </View>
 
-      <Text style={styles.sectionTitle}>已保存棋局</Text>
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.sectionTitle}>系列赛</Text>
+        {seriesRecords.length === 0 ? (
+          <View style={styles.compactEmptyCard}>
+            <Text style={styles.emptyText}>暂无系列赛记录</Text>
+          </View>
+        ) : (
+          seriesRecords.map((series) => (
+            <View key={series.id} style={styles.recordCard}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onOpenSeries(series)}
+                style={({ pressed }) => [
+                  styles.recordMain,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.recordHeading}>
+                  <Text numberOfLines={1} style={styles.recordTitle}>
+                    {series.title}
+                  </Text>
+                  <Text style={styles.result}>
+                    {series.status === 'active' ? '进行中' : '已结束'}
+                  </Text>
+                </View>
+                <Text style={styles.recordMeta}>
+                  {getSeriesResultLabel(series)} · 已完成{' '}
+                  {series.games.length} 局
+                </Text>
+                <Text style={styles.recordSource}>
+                  首局颜色已保存 · 每局自动换色
+                </Text>
+              </Pressable>
+              <View style={styles.recordActions}>
+                <SmallAction
+                  label="查看整组"
+                  onPress={() => onOpenSeries(series)}
+                />
+                <SmallAction
+                  danger
+                  label="删除整组"
+                  onPress={() => confirmDeleteSeries(series)}
+                />
+              </View>
+            </View>
+          ))
+        )}
+
+        <Text style={styles.sectionTitle}>独立棋局</Text>
         {records.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>暂无棋谱</Text>
@@ -457,6 +540,15 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderWidth: 1,
     padding: 24,
+  },
+  compactEmptyCard: {
+    alignItems: 'center',
+    borderColor: '#343b34',
+    borderRadius: 10,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    marginTop: 9,
+    padding: 14,
   },
   emptyTitle: {
     color: '#d7d4cb',

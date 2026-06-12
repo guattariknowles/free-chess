@@ -12,6 +12,7 @@ type PlayerClockPanelProps = {
   isPaused: boolean;
   onResign: () => void;
   onUndo: () => void;
+  playerName?: string;
   timeMs: number | null;
   timedOut: boolean;
 };
@@ -30,6 +31,7 @@ export function PlayerClockPanel({
   isPaused,
   onResign,
   onUndo,
+  playerName,
   timeMs,
   timedOut,
 }: PlayerClockPanelProps) {
@@ -63,7 +65,9 @@ export function PlayerClockPanel({
           ]}
         />
         <View>
-          <Text style={styles.playerName}>{COLOR_NAMES[color]}</Text>
+          <Text numberOfLines={1} style={styles.playerName}>
+            {playerName ?? COLOR_NAMES[color]}
+          </Text>
           <Text style={styles.stateLabel}>{stateLabel}</Text>
         </View>
       </View>

@@ -15,7 +15,13 @@
     "src/game/clockState.test.ts",
     "src/game/chessState.ts",
     "src/game/chessState.test.ts",
+    "src/game/customPosition.ts",
+    "src/game/customPosition.test.ts",
     "src/game/gameRecord.ts",
-    "src/game/gameRecord.test.ts"
+    "src/game/gameRecord.test.ts",
+    "src/game/series.ts",
+    "src/game/series.test.ts",
+    "src/game/userProfile.ts",
+    "src/game/userProfile.test.ts"
   ]
 }

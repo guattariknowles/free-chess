@@ -14,6 +14,7 @@ import { getBoardSquares, isLightSquare } from './boardCoordinates';
 type ChessBoardProps = {
   board: BoardPiece[];
   flipped: boolean;
+  highlightedSquares?: Square[];
   lastMove: LegalMove | null;
   legalMoves: LegalMove[];
   onSquarePress: (square: Square) => void;
@@ -43,6 +44,7 @@ const PIECES: Record<Color, Record<PieceSymbol, string>> = {
 function ChessBoardComponent({
   board,
   flipped,
+  highlightedSquares = [],
   lastMove,
   legalMoves,
   onSquarePress,
@@ -57,6 +59,10 @@ function ChessBoardComponent({
   const targetMoves = useMemo(
     () => new Map(legalMoves.map((move) => [move.to, move])),
     [legalMoves],
+  );
+  const highlighted = useMemo(
+    () => new Set(highlightedSquares),
+    [highlightedSquares],
   );
   const cellSize = size / 8;
 
@@ -90,6 +96,10 @@ function ChessBoardComponent({
 
             if (selected) {
               squareStyle.push(styles.selectedSquare);
+            }
+
+            if (highlighted.has(square)) {
+              squareStyle.push(styles.problemSquare);
             }
 
             return (
@@ -189,6 +199,10 @@ const styles = StyleSheet.create({
   },
   selectedSquare: {
     borderColor: '#f1aa3c',
+    borderWidth: 4,
+  },
+  problemSquare: {
+    borderColor: '#ef725f',
     borderWidth: 4,
   },
   lastMoveSquare: {
