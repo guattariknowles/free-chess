@@ -55,7 +55,13 @@
   `https://github.com/guattariknowles/free-chess/releases/tag/v1.7.0`
 - 本地 APK：
   `https://github.com/guattariknowles/free-chess/releases/download/v1.7.0/free-chess-1.7.0-2026-06-13-local.apk`
-- EAS preview 将与本地版本使用相同的 `1.7.0 / versionCode 9`。
+- EAS preview 已提交，构建 ID：
+  `9e4a3d29-b38a-48d9-93ee-4d06c3f2eb33`
+- EAS 构建日志：
+  `https://expo.dev/accounts/knowles/projects/chess-mobile-teacher/builds/9e4a3d29-b38a-48d9-93ee-4d06c3f2eb33`
+- EAS 版本：`1.7.0 / versionCode 9`。
+- 提交后状态：`IN_PROGRESS`。按项目规则不等待免费队列完成。
+- EAS APK 尚未生成，因此当前公开附件仍是本地测试 APK。
 
 ## 已知风险
 
