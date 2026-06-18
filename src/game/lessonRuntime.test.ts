@@ -1,12 +1,15 @@
 import { LESSONS } from '../data/lessons/lessonCatalog';
 import {
   advanceLesson,
+  applyLessonOpponentMove,
   attemptLessonMove,
   createLessonRuntime,
+  getPendingLessonEngineOptions,
   restartLesson,
   showLessonHint,
   undoLessonMove,
 } from './lessonRuntime';
+import { chooseAiMove } from './localAi';
 
 declare const require: (id: string) => unknown;
 
@@ -30,6 +33,27 @@ function getLesson(id: string) {
   return lesson;
 }
 
+function settleOpponent(
+  lesson: ReturnType<typeof getLesson>,
+  state: ReturnType<typeof createLessonRuntime>,
+  random: () => number = () => 0,
+) {
+  const options = getPendingLessonEngineOptions(lesson, state);
+
+  if (!options) {
+    return state;
+  }
+
+  const move = chooseAiMove(
+    state.fen,
+    options.difficulty,
+    random,
+    options.allowedMoves,
+  );
+
+  return applyLessonOpponentMove(lesson, state, move);
+}
+
 function enterGeneratedFocus(lesson: ReturnType<typeof getLesson>) {
   let state = createLessonRuntime(lesson);
 
@@ -39,6 +63,7 @@ function enterGeneratedFocus(lesson: ReturnType<typeof getLesson>) {
     { from: 'f1' as const, to: 'c4' as const },
   ]) {
     state = attemptLessonMove(lesson, state, move, () => 0);
+    state = settleOpponent(lesson, state);
     state = advanceLesson(lesson, state);
   }
 
@@ -53,6 +78,8 @@ test('Italian lesson accepts the main line and constrained AI replies', () => {
     from: 'e2',
     to: 'e4',
   });
+  assert.equal(state.awaitingOpponent, true);
+  state = settleOpponent(lesson, state);
   assert.equal(state.awaitingAdvance, true);
   assert.equal(state.moves.map((move) => move.san).join(' '), 'e4 e5');
 
@@ -61,11 +88,13 @@ test('Italian lesson accepts the main line and constrained AI replies', () => {
     from: 'g1',
     to: 'f3',
   });
+  state = settleOpponent(lesson, state);
   state = advanceLesson(lesson, state);
   state = attemptLessonMove(lesson, state, {
     from: 'f1',
     to: 'c4',
   });
+  state = settleOpponent(lesson, state);
 
   assert.equal(state.completed, true);
   assert.equal(
@@ -83,11 +112,12 @@ test('recommended-move lessons receive a working generated interaction', () => {
     { from: 'd4', to: 'f5' },
     () => 0,
   );
+  const settled = settleOpponent(lesson, state);
 
-  assert.equal(state.completed, true);
-  assert.equal(state.moves[6].from, 'd4');
-  assert.equal(state.moves[6].to, 'f5');
-  assert.ok(state.moves.length >= 7);
+  assert.equal(settled.completed, true);
+  assert.equal(settled.moves[6].from, 'd4');
+  assert.equal(settled.moves[6].to, 'f5');
+  assert.ok(settled.moves.length >= 7);
 });
 
 test('wrong and illegal moves give feedback without changing the board', () => {
@@ -116,11 +146,12 @@ test('strategy lesson uses local AI only inside its allowed replies', () => {
     { from: 'd2', to: 'd4' },
     () => 0.75,
   );
+  const settled = settleOpponent(lesson, state, () => 0.75);
 
-  assert.equal(state.completed, true);
-  assert.equal(state.moves[0].san, 'd4');
-  assert.equal(state.moves[1].from, 'g8');
-  assert.equal(state.moves[1].to, 'f6');
+  assert.equal(settled.completed, true);
+  assert.equal(settled.moves[0].san, 'd4');
+  assert.equal(settled.moves[1].from, 'g8');
+  assert.equal(settled.moves[1].to, 'f6');
 });
 
 test('endgame lesson supports hint, undo, retry and restart', () => {
@@ -128,11 +159,14 @@ test('endgame lesson supports hint, undo, retry and restart', () => {
   const initial = createLessonRuntime(lesson);
   const focus = enterGeneratedFocus(lesson);
   const hinted = showLessonHint(lesson, focus);
-  const firstStep = attemptLessonMove(
+  const firstStep = settleOpponent(
     lesson,
-    hinted,
-    { from: 'e5', to: 'd5' },
-    () => 0,
+    attemptLessonMove(
+      lesson,
+      hinted,
+      { from: 'e5', to: 'd5' },
+      () => 0,
+    ),
   );
 
   assert.equal(hinted.feedback.kind, 'hint');
@@ -144,17 +178,23 @@ test('endgame lesson supports hint, undo, retry and restart', () => {
 
   const retried = advanceLesson(
     lesson,
-    attemptLessonMove(
+    settleOpponent(
       lesson,
-      undone,
-      { from: 'e5', to: 'd5' },
-      () => 0,
+      attemptLessonMove(
+        lesson,
+        undone,
+        { from: 'e5', to: 'd5' },
+        () => 0,
+      ),
     ),
   );
-  const completed = attemptLessonMove(lesson, retried, {
-    from: 'e4',
-    to: 'e5',
-  });
+  const completed = settleOpponent(
+    lesson,
+    attemptLessonMove(lesson, retried, {
+      from: 'e4',
+      to: 'e5',
+    }),
+  );
 
   assert.equal(completed.completed, true);
   assert.match(completed.feedback.message, /通路兵/);

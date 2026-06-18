@@ -2,7 +2,9 @@
 
 Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋应用。
 
-项目坚持离线优先、无广告、无账号、无追踪，不依赖付费 API 或云端模型。当前版本支持标准国际象棋规则、棋钟、本地棋谱、面对面双人操作和简单本地 AI。
+项目坚持离线优先、无广告、无账号、无追踪，不依赖付费 API 或云端模型。
+当前测试版本已接入 Android 本地 Stockfish 18，支持普通人机和教学自由
+对弈完全离线运行。`arm64` 实体手机仍需用户安装 `1.9.0` 测试版验收。
 
 ## 开发与维护声明
 
@@ -46,6 +48,8 @@ Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋
 - 面对面双人模式下远端一方棋子正向显示
 - 三档完全离线的简单 AI：随机合法走法、吃子优先和一步子力评分
 - 人机对局支持真人执白、执黑或随机执色，并兼容棋钟、棋谱和回放
+- Android 本地 Stockfish 18，支持取消、超时、过期结果丢弃和异常降级
+- 普通人机与教学自由对弈均可在飞行模式下运行
 
 ## 技术栈
 
@@ -66,12 +70,48 @@ npm test
 npm run android
 ```
 
+### Android 本地 Stockfish 构建
+
+Stockfish 原生模块不能在 Expo Go 中运行，需要 Android 开发构建或 APK。
+仓库已经保存对应的 Stockfish 18 源码、NNUE 网络、Kotlin 接口和 CMake
+构建配置，不依赖本机临时下载文件。
+
+需要 Java 17、Android SDK 36、NDK `27.1.12297006` 和 CMake `3.22.1`。
+在 Windows PowerShell 中可运行：
+
+```powershell
+cd android
+.\gradlew.bat :stockfish-engine:compileDebugKotlin `
+  :stockfish-engine:externalNativeBuildDebug `
+  :app:assembleDebug
+```
+
+调试 APK 位于 `android/app/build/outputs/apk/debug/app-debug.apk`。
+它应包含：
+
+```text
+lib/arm64-v8a/libstockfish.so
+lib/x86_64/libstockfish.so
+assets/stockfish/nn-c288c895ea92.nnue
+assets/stockfish/nn-37f18f62d772.nnue
+```
+
+安装调试 APK 并启动过一次 Stockfish 后，可运行 100 局面稳定性检查：
+
+```powershell
+npm run test:stockfish:android -- emulator-5554 com.knowles.freechess 100
+```
+
+Stockfish 的来源、GPL v3 许可证和网络校验值见
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 ## 项目状态
 
 阶段 1 棋盘与规则、阶段 2 棋钟、阶段 3 PGN 与棋谱、阶段 4
 本地档案与局面、阶段 5 基础教学、阶段 6 简单本地 AI、阶段 7
-互动教学、阶段 8 AI 对弈挑战与 PGN 导入已经完成。下一阶段是
-Android 本地 Stockfish。
+互动教学、阶段 8 AI 对弈挑战与 PGN 导入已经完成。阶段 9 Android
+本地 Stockfish 已发布 `1.9.0` 测试版供实体手机验收；在 `arm64`
+实体手机通过前，阶段 9 仍不能标记为完整交付。
 
 完整计划见 [ROADMAP.md](ROADMAP.md)。
 
@@ -81,6 +121,7 @@ Android 本地 Stockfish。
 ## 下载 Android 测试版
 
 - [GitHub Releases](https://github.com/guattariknowles/free-chess/releases)
+- [直接下载 Free Chess 1.9.0 Stockfish 测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.9.0/free-chess-1.9.0-2026-06-15-local.apk)
 - [直接下载 Free Chess 1.8.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.8.0/free-chess-1.8.0-2026-06-13-local.apk)
 - [直接下载 Free Chess 1.7.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.7.0/free-chess-1.7.0-2026-06-13-local.apk)
 - [直接下载 Free Chess 1.6.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.6.0/free-chess-1.6.0-2026-06-13-local.apk)
@@ -118,6 +159,12 @@ E4B6B2D5D5A45D7B2B40022FB5015FCFA9560246FF7D8FBA3EFB570ADCD43F28
 
 ```text
 C2C460037E23CCE7BC6FF8C1B8DF3D50AA1483C0299B7FAE55A76C77380E47C3
+```
+
+`1.9.0` Stockfish 测试 APK 的 SHA-256：
+
+```text
+D74F35F18F75D2F5D11C1E16D4E58A18904BDBCF9F69D75652818F596717EF2B
 ```
 
 `1.4.0` EAS APK 的 SHA-256：

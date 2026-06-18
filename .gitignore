@@ -41,6 +41,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+/modules/*/android/.cxx/
+/modules/*/android/build/
+/.qa/
+/.expo-stage9-*.log
+.tmp-stage9-*
 
 # local development instructions and memory
 /.claude/

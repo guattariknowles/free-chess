@@ -14,6 +14,7 @@ import {
 import { ChessBoard } from '../components/Board/ChessBoard';
 import { ClockSettingsModal } from '../components/Clock/ClockSettingsModal';
 import { PlayerClockPanel } from '../components/Clock/PlayerClockPanel';
+import { chessEngine } from '../engine/defaultEngine';
 import {
   type ClockConfig,
   type ClockState,
@@ -42,7 +43,6 @@ import {
 import { saveGameRecord } from '../game/gameLibraryStorage';
 import {
   type AiDifficulty,
-  chooseAiMove,
   getAiGameParticipants,
 } from '../game/localAi';
 import {
@@ -56,7 +56,10 @@ import {
   loadActiveSeries,
   saveSeriesRecord,
 } from '../game/seriesStorage';
-import type { UserProfile } from '../game/userProfile';
+import {
+  selectDistinctPlayerProfiles,
+  type UserProfile,
+} from '../game/userProfile';
 import { loadUserProfiles } from '../game/userProfileStorage';
 import { GameLibraryScreen } from './GameLibraryScreen';
 import { LearnScreen } from './LearnScreen';
@@ -88,9 +91,9 @@ const COLOR_NAMES: Record<Color, string> = {
 };
 
 const AI_DIFFICULTY_LABELS: Record<AiDifficulty, string> = {
-  novice: '新手：随机合法走法',
-  beginner: '初级：优先吃子',
-  intermediate: '中级：简单子力评分',
+  novice: '新手：短时低强度计算',
+  beginner: '初级：低强度局面计算',
+  intermediate: '中级：更深入局面计算',
 };
 
 const HUMAN_COLOR_LABELS: Record<HumanColorChoice, string> = {
@@ -244,6 +247,16 @@ export function PlayScreen() {
     useState<'library' | 'play' | 'series'>('play');
   const [clockSettingsVisible, setClockSettingsVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const engineInteractionBlocked =
+    profilesVisible ||
+    positionEditorVisible ||
+    seriesSetupVisible ||
+    Boolean(reviewRecord) ||
+    Boolean(seriesDetail) ||
+    libraryVisible ||
+    learnVisible ||
+    playerSetupVisible ||
+    clockSettingsVisible;
   const { height, width } = useWindowDimensions();
   const boardSize = Math.floor(
     Math.min(width - 24, Math.max(236, height - 430), 520),
@@ -285,6 +298,7 @@ export function PlayScreen() {
 
   const cancelAiTask = () => {
     aiTaskVersionRef.current += 1;
+    void chessEngine.stop();
 
     if (aiTaskRef.current) {
       clearTimeout(aiTaskRef.current);
@@ -626,6 +640,7 @@ export function PlayScreen() {
       snapshot.status.isGameOver ||
       outcome ||
       clock.timedOutColor ||
+      engineInteractionBlocked ||
       (clockEnabled && clock.isPaused)
     ) {
       return;
@@ -636,7 +651,7 @@ export function PlayScreen() {
     setAiThinking(true);
     setFeedback('AI 正在思考');
 
-    aiTaskRef.current = setTimeout(() => {
+    aiTaskRef.current = setTimeout(async () => {
       aiTaskRef.current = null;
 
       if (
@@ -659,17 +674,42 @@ export function PlayScreen() {
         return;
       }
 
-      const move = chooseAiMove(
+      const result = await chessEngine.getBestMove(
         scheduledFen,
-        aiDifficulty,
+        {
+          difficulty: aiDifficulty,
+        },
       );
-      setAiThinking(false);
 
-      if (!move) {
+      if (
+        taskVersion !== aiTaskVersionRef.current ||
+        gameRef.current.getSnapshot().fen !== scheduledFen ||
+        gameRef.current.getSnapshot().status.turn !== aiColor ||
+        gameRef.current.getSnapshot().status.isGameOver
+      ) {
         return;
       }
 
-      commitMove(move.from, move.to, move.promotion);
+      setAiThinking(false);
+
+      if (!result.move) {
+        return;
+      }
+
+      commitMove(
+        result.move.from,
+        result.move.to,
+        result.move.promotion,
+      );
+
+      if (
+        result.fallbackReason &&
+        !gameRef.current.getSnapshot().status.isGameOver
+      ) {
+        setFeedback(
+          `Stockfish 暂不可用，已由简易 AI 回应 ${result.move.san}`,
+        );
+      }
     }, 450);
 
     return () => {
@@ -684,6 +724,7 @@ export function PlayScreen() {
     aiDifficulty,
     clock.isPaused,
     clock.timedOutColor,
+    engineInteractionBlocked,
     gameMode,
     gameSession,
     outcome,
@@ -696,6 +737,7 @@ export function PlayScreen() {
       if (aiTaskRef.current) {
         clearTimeout(aiTaskRef.current);
       }
+      void chessEngine.stop();
     },
     [],
   );
@@ -1100,9 +1142,15 @@ export function PlayScreen() {
       return;
     }
 
+    const localSelection = selectDistinctPlayerProfiles(
+      profiles,
+      whitePlayer?.id,
+      blackPlayer?.id,
+    );
+
     setPendingGameMode(gameMode);
-    setPendingWhiteId(whitePlayer?.id ?? profiles[0]?.id ?? null);
-    setPendingBlackId(blackPlayer?.id ?? profiles[1]?.id ?? null);
+    setPendingWhiteId(localSelection.whiteId);
+    setPendingBlackId(localSelection.blackId);
     setPendingHumanId(humanPlayer?.id ?? profiles[0]?.id ?? null);
     setPendingAiDifficulty(aiDifficulty);
     setPendingHumanColorChoice(humanColorChoice);

@@ -1,0 +1,12 @@
+{
+  "name": "stockfish-engine",
+  "version": "1.0.0",
+  "description": "Android Stockfish bridge for Free Chess",
+  "main": "index.ts",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

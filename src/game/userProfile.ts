@@ -6,6 +6,11 @@ export type UserProfile = {
   updatedAt: string;
 };
 
+export type PlayerProfileSelection = {
+  blackId: string | null;
+  whiteId: string | null;
+};
+
 type CreateUserProfileOptions = {
   createdAt?: string;
   id?: string;
@@ -19,6 +24,27 @@ function createId(now: string): string {
 
 export function normalizeProfileName(name: string): string {
   return name.trim().replace(/\s+/g, ' ');
+}
+
+export function selectDistinctPlayerProfiles(
+  profiles: UserProfile[],
+  preferredWhiteId?: string | null,
+  preferredBlackId?: string | null,
+): PlayerProfileSelection {
+  const whiteId = profiles.some(
+    (profile) => profile.id === preferredWhiteId,
+  )
+    ? preferredWhiteId ?? null
+    : profiles[0]?.id ?? null;
+  const blackId = profiles.some(
+    (profile) =>
+      profile.id === preferredBlackId &&
+      profile.id !== whiteId,
+  )
+    ? preferredBlackId ?? null
+    : profiles.find((profile) => profile.id !== whiteId)?.id ?? null;
+
+  return { blackId, whiteId };
 }
 
 export function createUserProfile({

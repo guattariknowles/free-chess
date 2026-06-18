@@ -1,5 +1,5 @@
 import type { Square } from 'chess.js';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -11,12 +11,15 @@ import {
 
 import { ChessBoard } from '../components/Board/ChessBoard';
 import type { ChessLesson } from '../data/lessons/lessonCatalog';
+import { chessEngine } from '../engine/defaultEngine';
 import { ChessGame, type LegalMove } from '../game/chessState';
 import {
   advanceLesson,
+  applyLessonOpponentMove,
   attemptLessonMove,
   createLessonRuntime,
   getCurrentLessonStep,
+  getPendingLessonEngineOptions,
   restartLesson,
   showLessonHint,
   undoLessonMove,
@@ -47,6 +50,7 @@ export function InteractiveLessonScreen({
   const [flipped, setFlipped] = useState(
     interactive.humanColor === 'b',
   );
+  const aiTaskVersionRef = useRef(0);
   const { height, width } = useWindowDimensions();
   const snapshot = useMemo(
     () =>
@@ -74,8 +78,73 @@ export function InteractiveLessonScreen({
     setLegalMoves([]);
   };
 
+  useEffect(() => {
+    if (!runtime.awaitingOpponent) {
+      return;
+    }
+
+    const options = getPendingLessonEngineOptions(lesson, runtime);
+
+    if (!options) {
+      setRuntime((current) =>
+        applyLessonOpponentMove(lesson, current, null),
+      );
+      return;
+    }
+
+    const scheduledFen = runtime.fen;
+    const taskVersion = aiTaskVersionRef.current + 1;
+    aiTaskVersionRef.current = taskVersion;
+    let active = true;
+
+    void chessEngine
+      .getBestMove(scheduledFen, options)
+      .then((result) => {
+        if (!active || taskVersion !== aiTaskVersionRef.current) {
+          return;
+        }
+
+        setRuntime((current) =>
+          current.awaitingOpponent && current.fen === scheduledFen
+            ? applyLessonOpponentMove(
+                lesson,
+                current,
+                result.move,
+                result.fallbackReason,
+              )
+            : current,
+        );
+      })
+      .catch(() => {
+        if (!active || taskVersion !== aiTaskVersionRef.current) {
+          return;
+        }
+
+        setRuntime((current) =>
+          current.awaitingOpponent && current.fen === scheduledFen
+            ? applyLessonOpponentMove(lesson, current, null)
+            : current,
+        );
+      });
+
+    return () => {
+      active = false;
+      aiTaskVersionRef.current += 1;
+      void chessEngine.stop();
+    };
+  }, [
+    lesson,
+    runtime.awaitingOpponent,
+    runtime.fen,
+    runtime.opponentContext,
+  ]);
+
   const handleSquarePress = (square: Square) => {
-    if (runtime.completed || runtime.awaitingAdvance) {
+    if (
+      runtime.completed ||
+      runtime.awaitingAdvance ||
+      runtime.awaitingOpponent
+    ) {
       clearSelection();
       return;
     }
@@ -120,7 +189,13 @@ export function InteractiveLessonScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.outlineButton}>
+          <Pressable
+            onPress={() => {
+              void chessEngine.stop();
+              onBack();
+            }}
+            style={styles.outlineButton}
+          >
             <Text style={styles.outlineButtonText}>返回说明</Text>
           </Pressable>
           <View style={styles.headerText}>
@@ -140,12 +215,12 @@ export function InteractiveLessonScreen({
           <Text style={styles.goalText}>{interactive.goal}</Text>
           <Text style={styles.modeText}>
             {runtime.freePlay
-              ? '当前对手：离线 AI 自主走棋；Stockfish 接入后由其替换'
+              ? '当前对手：Android 本地 Stockfish；异常时自动使用简易 AI'
               : lesson.training.source === 'imported' &&
                   lesson.category === 'classics'
                 ? '当前对手：离线 AI 严格按照导入棋谱回应'
                 : usesLocalAi
-              ? '当前对手：离线本地 AI；课程目标仍限制正确走法'
+              ? '当前对手：本地 Stockfish；课程目标仍限制可选回应'
               : usesScript
                 ? '当前对手：固定教学脚本'
                 : '本课为单步走棋练习，不含对手回应'}
@@ -170,9 +245,13 @@ export function InteractiveLessonScreen({
           </Text>
           <Text style={styles.instructionText}>
             {runtime.freePlay
-              ? '继续按棋规走棋。你走一步后，AI 会自主回应一步。'
+              ? runtime.awaitingOpponent
+                ? 'AI 正在思考，请稍候。'
+                : '继续按棋规走棋。你走一步后，AI 会自主回应一步。'
               : runtime.completed
               ? interactive.completion
+              : runtime.awaitingOpponent
+                ? 'AI 正在计算回应，请稍候。'
               : step?.instruction}
           </Text>
         </View>
@@ -194,7 +273,7 @@ export function InteractiveLessonScreen({
 
         <View style={styles.controlRow}>
           <ControlButton
-            disabled={runtime.freePlay}
+            disabled={runtime.freePlay || runtime.awaitingOpponent}
             label="提示"
             onPress={() =>
               setRuntime((current) => showLessonHint(lesson, current))
@@ -204,6 +283,7 @@ export function InteractiveLessonScreen({
             disabled={runtime.history.length === 0}
             label="上一步"
             onPress={() => {
+              void chessEngine.stop();
               setRuntime((current) => undoLessonMove(current));
               clearSelection();
             }}
@@ -211,12 +291,17 @@ export function InteractiveLessonScreen({
           <ControlButton
             label="重来"
             onPress={() => {
+              void chessEngine.stop();
               setRuntime(restartLesson(lesson));
               clearSelection();
             }}
           />
           <ControlButton
-            disabled={!runtime.awaitingAdvance || runtime.freePlay}
+            disabled={
+              !runtime.awaitingAdvance ||
+              runtime.freePlay ||
+              runtime.awaitingOpponent
+            }
             label="下一步"
             onPress={() => {
               setRuntime((current) => advanceLesson(lesson, current));

@@ -1,6 +1,7 @@
 import {
   createUserProfile,
   normalizeProfileName,
+  selectDistinctPlayerProfiles,
 } from './userProfile';
 
 declare const require: (id: string) => unknown;
@@ -35,4 +36,26 @@ test('rejects empty and overly long profile names', () => {
     () => createUserProfile({ name: 'a'.repeat(25) }),
     /最多 24/,
   );
+});
+
+test('selects distinct local players when an AI game has one human side', () => {
+  const alice = createUserProfile({
+    createdAt: '2026-06-12T00:00:00.000Z',
+    id: 'profile-alice',
+    name: 'Alice',
+  });
+  const bob = createUserProfile({
+    createdAt: '2026-06-12T00:00:00.000Z',
+    id: 'profile-bob',
+    name: 'Bob',
+  });
+
+  const selection = selectDistinctPlayerProfiles(
+    [alice, bob],
+    null,
+    alice.id,
+  );
+
+  assert.equal(selection.whiteId, alice.id);
+  assert.equal(selection.blackId, bob.id);
 });

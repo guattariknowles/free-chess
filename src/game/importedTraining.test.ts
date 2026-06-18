@@ -3,9 +3,12 @@ import {
   createLessonFromImportedTraining,
 } from './importedTraining';
 import {
+  applyLessonOpponentMove,
   attemptLessonMove,
   createLessonRuntime,
+  getPendingLessonEngineOptions,
 } from './lessonRuntime';
+import { chooseAiMove } from './localAi';
 
 declare const require: (id: string) => unknown;
 
@@ -33,6 +36,27 @@ function createRecord(
   });
 }
 
+function settleOpponent(
+  lesson: ReturnType<typeof createLessonFromImportedTraining>,
+  state: ReturnType<typeof createLessonRuntime>,
+  random: () => number = () => 0,
+) {
+  const options = getPendingLessonEngineOptions(lesson, state);
+
+  if (!options) {
+    return state;
+  }
+
+  const move = chooseAiMove(
+    state.fen,
+    options.difficulty,
+    random,
+    options.allowedMoves,
+  );
+
+  return applyLessonOpponentMove(lesson, state, move);
+}
+
 test('opening import trains at most six full moves then enables free AI play', () => {
   const record = createRecord(
     'openings',
@@ -57,6 +81,8 @@ test('opening runtime continues with autonomous AI after the imported line', () 
     { from: 'e2', to: 'e4' },
     () => 0,
   );
+  assert.equal(state.awaitingOpponent, true);
+  state = settleOpponent(lesson, state);
   assert.equal(state.freePlay, true);
   assert.equal(state.completed, false);
   assert.equal(
@@ -70,6 +96,7 @@ test('opening runtime continues with autonomous AI after the imported line', () 
     { from: 'g1', to: 'f3' },
     () => 0,
   );
+  state = settleOpponent(lesson, state);
   assert.equal(state.freePlay, true);
   assert.ok(state.moves.length >= 4);
 });
@@ -80,6 +107,8 @@ test('classic import follows the exact PGN and supports training black', () => {
   );
   let state = createLessonRuntime(lesson);
 
+  assert.equal(state.awaitingOpponent, true);
+  state = settleOpponent(lesson, state);
   assert.equal(state.moves[0].san, 'e4');
   assert.equal(state.turn, 'b');
 
@@ -87,6 +116,7 @@ test('classic import follows the exact PGN and supports training black', () => {
     from: 'e7',
     to: 'e5',
   });
+  state = settleOpponent(lesson, state);
 
   assert.equal(
     state.moves.map((move) => move.san).join(' '),
@@ -115,6 +145,7 @@ test('endgame import uses the final playable position and starts free AI play', 
     { from: 'e4', to: 'e5' },
     () => 0,
   );
+  state = settleOpponent(lesson, state);
   assert.ok(state.moves.length >= 1);
   assert.match(state.feedback.message, /AI|结束/);
 });
