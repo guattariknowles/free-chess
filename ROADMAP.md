@@ -94,7 +94,8 @@
 
 ### 阶段 9：Android 本地 Stockfish
 
-- 状态：`1.9.0` 测试版已构建，等待 `arm64` 实体手机验收
+- 状态：`1.9.0` GitHub 测试版已发布，等待 `arm64` 实体手机和 EAS
+  preview 验收
 - 用本地 Stockfish 替换普通人机和教学自由对弈的走法提供层
 - 保持完全离线，不调用云端模型或付费 API
 - 先建立统一异步 `ChessEngine` 接口，界面不直接依赖 Stockfish

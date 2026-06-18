@@ -23,17 +23,18 @@
 
 ## 2. 当前准确状态
 
-- 当前分支：`stage-9-stockfish`
-- 分支基线：`dbfe641`，即已发布的 `v1.8.0`
+- 当前分支：`main`
+- 发布提交：`d864fd1`，即 `v1.9.0` GitHub 测试版发布提交
 - 当前稳定发布版本：`1.8.0`
 - 当前实体机验收测试版：`1.9.0`
 - Android `versionCode`：`11`
-- 阶段 9 有大量未提交修改，不能删除、重置或从头重做。
+- 阶段 9 的 `1.9.0` 测试版代码已经提交并推送到 GitHub。
 - 当前阶段结论：
   **开发接近完成，但阶段九尚未完整交付。**
-- 在全部验证完成前，不得升级到 `1.9.0`，不得宣布阶段完成。
+- 在 `arm64` 实体机和 EAS preview 验证完成前，不得宣布阶段 9 完整完成。
 - 教学剩余 3 项和飞行模式验收已在 x86_64 模拟器完成。
-- 用户明确要求先发布测试 APK，再进行 `arm64` 实体手机验收。
+- 用户明确要求先发布测试 APK，再进行 `arm64` 实体手机验收；GitHub
+  prerelease 已按此要求完成。
 
 `PROJECT_MEMORY.md` 中“自动测试 68 项”描述的是已发布的 `1.8.0`
 基线；当前阶段九分支实际已有 77 项自动测试，并已全部通过。
@@ -159,15 +160,13 @@ Chess_Android_36
 
 ## 5. 仍未完成的任务
 
-按以下顺序继续，不要跳到发布：
+按以下顺序继续，不要跳到阶段 10：
 
 1. 在至少一台 `arm64` 实体 Android 手机上测试。
 2. 实机复核取消、棋钟、教学和飞行模式行为。
-3. 全部通过后，才升级到 `1.9.0` / `versionCode 11`。
-4. 构建并核验本地 Release APK。
-5. 构建同版本 EAS preview APK。
-6. 更新 changelog、README、路线图和记忆文档。
-7. 提交、推送、打标签、创建 GitHub Release 并上传 APK。
+3. 构建同版本 EAS preview APK。
+4. 实机和 EAS 通过后，更新 README、ROADMAP、changelog 和记忆文档，
+   把阶段 9 从“测试版”改为“完整交付”。
 
 ## 6. 100 局面脚本
 
@@ -352,8 +351,8 @@ git checkout -- .
 
 1. 读取 `AGENTS.md`、本文件、`docs/STAGE_9_STOCKFISH_PLAN.md`、
    `docs/FUTURE_PLAN.md`、`docs/DEVELOPMENT_MEMORY.md`。
-2. 运行 `git status --short`，确认源码修改和 `.tmp-stage9-*` 临时文件。
+2. 运行 `git status --short`，确认工作区是否干净。
 3. 连接至少一台 `arm64` 实体 Android 手机。
 4. 在实机复核普通人机、取消、棋钟、教学和飞行模式。
-5. 只在实机全部通过后，才开始 `1.9.0`、Release APK、EAS preview 和
-   GitHub Release。
+5. 构建并验收同版本 EAS preview APK。
+6. 只在实机和 EAS 全部通过后，才把阶段 9 标记为完整交付。
