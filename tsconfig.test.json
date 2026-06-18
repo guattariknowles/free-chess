@@ -28,6 +28,8 @@
     "src/game/customPosition.test.ts",
     "src/game/gameRecord.ts",
     "src/game/gameRecord.test.ts",
+    "src/game/gameAnalysis.ts",
+    "src/game/gameAnalysis.test.ts",
     "src/game/importedTraining.ts",
     "src/game/importedTraining.test.ts",
     "src/game/localAi.ts",

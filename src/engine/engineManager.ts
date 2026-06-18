@@ -1,5 +1,6 @@
 import type {
   ChessEngine,
+  EnginePositionAnalysis,
   EngineSearchOptions,
   EngineSearchResult,
 } from './ChessEngine';
@@ -16,6 +17,55 @@ export class EngineManager {
     private readonly primary: ChessEngine,
     private readonly fallback: ChessEngine,
   ) {}
+
+  async analyzePosition(
+    fen: string,
+    options: EngineSearchOptions,
+  ): Promise<EnginePositionAnalysis> {
+    try {
+      if (!(await this.primary.isAvailable())) {
+        throw new Error('Stockfish 当前不可用');
+      }
+
+      const analysis = await this.withTimeout(
+        this.primary.analyzePosition(fen, options),
+        options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      );
+      const legalMove = analysis.move
+        ? resolveLegalEngineMove(fen, analysis.move, options.allowedMoves)
+        : null;
+
+      if (analysis.move && !legalMove) {
+        throw new Error('Stockfish 返回了不符合当前局面的走法');
+      }
+
+      return {
+        move: legalMove,
+        provider: this.primary.provider,
+        score: analysis.score,
+      };
+    } catch (error) {
+      await this.primary.stop().catch(() => undefined);
+      const fallbackAnalysis = await this.fallback.analyzePosition(
+        fen,
+        options,
+      );
+      const legalFallback = fallbackAnalysis.move
+        ? resolveLegalEngineMove(
+            fen,
+            fallbackAnalysis.move,
+            options.allowedMoves,
+          )
+        : null;
+
+      return {
+        fallbackReason: getErrorMessage(error),
+        move: legalFallback,
+        provider: this.fallback.provider,
+        score: null,
+      };
+    }
+  }
 
   async getBestMove(
     fen: string,

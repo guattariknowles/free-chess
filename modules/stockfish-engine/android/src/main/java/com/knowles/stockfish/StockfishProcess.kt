@@ -105,6 +105,20 @@ internal class StockfishProcess(
     moveTimeMs: Int,
     allowedMoves: List<String>,
   ): String? {
+    return analyze(
+      fen = fen,
+      skillLevel = skillLevel,
+      moveTimeMs = moveTimeMs,
+      allowedMoves = allowedMoves,
+    ).bestMove
+  }
+
+  fun analyze(
+    fen: String,
+    skillLevel: Int,
+    moveTimeMs: Int,
+    allowedMoves: List<String>,
+  ): SearchResult {
     check(isRunning) { "Stockfish process is not running" }
 
     send("setoption name Skill Level value $skillLevel")
@@ -117,14 +131,25 @@ internal class StockfishProcess(
     }
     send("go movetime $moveTimeMs$searchMoves")
 
-    val bestMoveLine = awaitLine(
+    var scoreCp: Int? = null
+    var mate: Int? = null
+    val bestMoveLine = awaitSearchResult(
       moveTimeMs.toLong() + SEARCH_GRACE_PERIOD_MS,
-    ) { it.startsWith("bestmove ") }
+    ) { line ->
+      parseScore(line)?.let { score ->
+        scoreCp = score.scoreCp
+        mate = score.mate
+      }
+    }
     val bestMove = bestMoveLine
       .removePrefix("bestmove ")
       .substringBefore(' ')
 
-    return bestMove.takeUnless { it == "(none)" || it == "0000" }
+    return SearchResult(
+      bestMove = bestMove.takeUnless { it == "(none)" || it == "0000" },
+      mate = mate,
+      scoreCp = scoreCp,
+    )
   }
 
   fun stop() {
@@ -216,6 +241,54 @@ internal class StockfishProcess(
     }
   }
 
+  private fun awaitSearchResult(
+    timeoutMs: Long,
+    onInfoLine: (String) -> Unit,
+  ): String {
+    val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+
+    while (true) {
+      val remainingNanos = deadline - System.nanoTime()
+      if (remainingNanos <= 0) {
+        throw TimeoutException("Timed out waiting for Stockfish output")
+      }
+
+      val line = outputQueue.poll(
+        minOf(
+          TimeUnit.NANOSECONDS.toMillis(remainingNanos).coerceAtLeast(1),
+          OUTPUT_POLL_INTERVAL_MS,
+        ),
+        TimeUnit.MILLISECONDS,
+      )
+
+      if (line == PROCESS_CLOSED) {
+        throw IllegalStateException("Stockfish process exited unexpectedly")
+      }
+      if (line != null) {
+        if (line.startsWith("bestmove ")) {
+          return line
+        }
+        if (line.startsWith("info ")) {
+          onInfoLine(line)
+        }
+      }
+      if (process?.isAlive != true) {
+        throw IllegalStateException("Stockfish process exited unexpectedly")
+      }
+    }
+  }
+
+  private fun parseScore(line: String): SearchScore? {
+    SCORE_CP_PATTERN.find(line)?.let { match ->
+      return SearchScore(scoreCp = match.groupValues[1].toInt(), mate = null)
+    }
+    SCORE_MATE_PATTERN.find(line)?.let { match ->
+      return SearchScore(scoreCp = null, mate = match.groupValues[1].toInt())
+    }
+
+    return null
+  }
+
   private fun prepareNetworks(): File {
     val directory = File(context.noBackupFilesDir, NETWORK_DIRECTORY)
     check(directory.exists() || directory.mkdirs()) {
@@ -273,6 +346,23 @@ internal class StockfishProcess(
     val sha256: String,
   )
 
+  data class SearchResult(
+    val bestMove: String?,
+    val mate: Int?,
+    val scoreCp: Int?,
+  ) {
+    fun toMap(): Map<String, Any?> = mapOf(
+      "bestMove" to bestMove,
+      "mate" to mate,
+      "scoreCp" to scoreCp,
+    )
+  }
+
+  private data class SearchScore(
+    val mate: Int?,
+    val scoreCp: Int?,
+  )
+
   private companion object {
     const val ENGINE_FILENAME = "libstockfish.so"
     const val ASSET_DIRECTORY = "stockfish"
@@ -284,6 +374,8 @@ internal class StockfishProcess(
     const val NETWORK_LOAD_TIMEOUT_MS = 30_000L
     const val SEARCH_GRACE_PERIOD_MS = 5_000L
     const val PROCESS_EXIT_TIMEOUT_MS = 500L
+    val SCORE_CP_PATTERN = Regex("\\bscore cp (-?\\d+)")
+    val SCORE_MATE_PATTERN = Regex("\\bscore mate (-?\\d+)")
 
     val BIG_NETWORK = NetworkSpec(
       "nn-c288c895ea92.nnue",

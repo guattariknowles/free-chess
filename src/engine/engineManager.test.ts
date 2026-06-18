@@ -2,6 +2,7 @@ import { Chess } from 'chess.js';
 
 import type {
   ChessEngine,
+  EngineRawAnalysis,
   EngineMove,
   EngineSearchOptions,
 } from './ChessEngine';
@@ -31,6 +32,16 @@ class FakeEngine implements ChessEngine {
     private readonly error?: Error,
     private readonly delayMs = 0,
   ) {}
+
+  async analyzePosition(
+    fen: string,
+    options: EngineSearchOptions,
+  ): Promise<EngineRawAnalysis> {
+    return {
+      move: await this.getBestMove(fen, options),
+      score: null,
+    };
+  }
 
   async getBestMove(
     _fen: string,

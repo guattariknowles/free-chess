@@ -27,6 +27,7 @@ Free Chess 是一款面向初学者和本地双人对弈的 Android 国际象棋
 - 对局结束自动保存和进行中手动保存
 - 离线本地棋谱库与删除管理
 - 历史棋局逐步回放和棋盘翻转
+- 导入 PGN 后可用本地 Stockfish 复盘，查看每步评分、推荐下法和双方重合度
 - 创建、重命名和删除本地玩家档案
 - 普通本地对局绑定两个不同档案
 - 自由摆子、FEN 导入导出和自定义局面保存
@@ -111,7 +112,9 @@ Stockfish 的来源、GPL v3 许可证和网络校验值见
 本地档案与局面、阶段 5 基础教学、阶段 6 简单本地 AI、阶段 7
 互动教学、阶段 8 AI 对弈挑战与 PGN 导入已经完成。阶段 9 Android
 本地 Stockfish 已发布 `1.9.0` 测试版供实体手机验收；在 `arm64`
-实体手机通过前，阶段 9 仍不能标记为完整交付。
+实体手机通过前，阶段 9 仍不能标记为完整交付。阶段 10 离线棋局分析
+的功能代码已完成，支持导入棋谱后查看每步 Stockfish 评分、推荐下法，
+并统计双方与 Stockfish 首选走法的重合度，但尚未随新版 APK 做真机验收。
 
 完整计划见 [ROADMAP.md](ROADMAP.md)。
 
@@ -121,6 +124,7 @@ Stockfish 的来源、GPL v3 许可证和网络校验值见
 ## 下载 Android 测试版
 
 - [GitHub Releases](https://github.com/guattariknowles/free-chess/releases)
+- [直接下载 Free Chess 1.10.0 离线棋局分析测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.10.0/free-chess-1.10.0-2026-06-18-local.apk)
 - [直接下载 Free Chess 1.9.0 Stockfish 测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.9.0/free-chess-1.9.0-2026-06-15-local.apk)
 - [直接下载 Free Chess 1.8.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.8.0/free-chess-1.8.0-2026-06-13-local.apk)
 - [直接下载 Free Chess 1.7.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.7.0/free-chess-1.7.0-2026-06-13-local.apk)
@@ -165,6 +169,12 @@ C2C460037E23CCE7BC6FF8C1B8DF3D50AA1483C0299B7FAE55A76C77380E47C3
 
 ```text
 D74F35F18F75D2F5D11C1E16D4E58A18904BDBCF9F69D75652818F596717EF2B
+```
+
+`1.10.0` 离线棋局分析测试 APK 的 SHA-256：
+
+```text
+2B77B401269066E9691E786C000A222F2C1723F769945EE9FC755AE044BE3509
 ```
 
 `1.4.0` EAS APK 的 SHA-256：

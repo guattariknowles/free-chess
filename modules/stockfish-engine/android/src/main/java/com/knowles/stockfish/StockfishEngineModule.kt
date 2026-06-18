@@ -59,6 +59,32 @@ class StockfishEngineModule : Module() {
       }
     }
 
+    AsyncFunction("analyze") {
+        fen: String,
+        skillLevel: Int,
+        moveTimeMs: Int,
+        allowedMoves: List<String>,
+        promise: Promise ->
+      submit(promise) {
+        try {
+          validateRequest(fen, allowedMoves)
+          val result = analyzeWithSingleRestart(
+            fen = fen,
+            skillLevel = skillLevel.coerceIn(0, 20),
+            moveTimeMs = moveTimeMs.coerceIn(50, 5_000),
+            allowedMoves = allowedMoves,
+          )
+          promise.resolve(result.toMap())
+        } catch (error: Throwable) {
+          promise.reject(
+            "ERR_STOCKFISH_ANALYSIS",
+            error.message ?: "Stockfish analysis failed",
+            error,
+          )
+        }
+      }
+    }
+
     AsyncFunction("stop") {
       stopActiveSearch()
     }
@@ -128,6 +154,35 @@ class StockfishEngineModule : Module() {
     }
 
     error("Stockfish search failed")
+  }
+
+  private fun analyzeWithSingleRestart(
+    fen: String,
+    skillLevel: Int,
+    moveTimeMs: Int,
+    allowedMoves: List<String>,
+  ): StockfishProcess.SearchResult {
+    var firstError: Throwable? = null
+
+    repeat(2) { attempt ->
+      try {
+        return requireEngine().analyze(
+          fen = fen,
+          skillLevel = skillLevel,
+          moveTimeMs = moveTimeMs,
+          allowedMoves = allowedMoves,
+        )
+      } catch (error: Throwable) {
+        closeEngine()
+        if (attempt == 1) {
+          firstError?.let(error::addSuppressed)
+          throw error
+        }
+        firstError = error
+      }
+    }
+
+    error("Stockfish analysis failed")
   }
 
   private fun stopActiveSearch() {

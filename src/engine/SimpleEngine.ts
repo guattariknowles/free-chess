@@ -1,5 +1,6 @@
 import type {
   ChessEngine,
+  EngineRawAnalysis,
   EngineMove,
   EngineSearchOptions,
 } from './ChessEngine';
@@ -9,6 +10,16 @@ export class SimpleEngine implements ChessEngine {
   readonly provider = 'simple' as const;
 
   constructor(private readonly random: () => number = Math.random) {}
+
+  async analyzePosition(
+    fen: string,
+    options: EngineSearchOptions,
+  ): Promise<EngineRawAnalysis> {
+    return {
+      move: await this.getBestMove(fen, options),
+      score: null,
+    };
+  }
 
   async getBestMove(
     fen: string,
