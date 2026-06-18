@@ -68,6 +68,17 @@ import { ReviewScreen } from './ReviewScreen';
 import { SeriesDetailScreen } from './SeriesDetailScreen';
 import { SeriesSetupScreen } from './SeriesSetupScreen';
 import { UserProfilesScreen } from './UserProfilesScreen';
+import {
+  APP_THEME_OPTIONS,
+  BOARD_SKIN_OPTIONS,
+  PIECE_SKIN_OPTIONS,
+  useTheme,
+  type AppTheme,
+  type BoardSkin,
+  type BoardSkinId,
+  type PieceSkinId,
+  type ThemeId,
+} from '../theme';
 
 type PendingPromotion = {
   from: Square;
@@ -184,6 +195,16 @@ function getTimeControl(config: ClockConfig): string {
 }
 
 export function PlayScreen() {
+  const {
+    appTheme,
+    boardSkin,
+    pieceSkin,
+    setAppThemeId,
+    setBoardSkinId,
+    setPieceSkinId,
+    settings,
+  } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
   const gameRef = useRef(new ChessGame());
   const gameStartedAtRef = useRef(new Date());
   const currentInitialFenRef = useRef<string | undefined>(undefined);
@@ -247,6 +268,7 @@ export function PlayScreen() {
     useState<'library' | 'play' | 'series'>('play');
   const [clockSettingsVisible, setClockSettingsVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [appearanceVisible, setAppearanceVisible] = useState(false);
   const engineInteractionBlocked =
     profilesVisible ||
     positionEditorVisible ||
@@ -256,7 +278,8 @@ export function PlayScreen() {
     libraryVisible ||
     learnVisible ||
     playerSetupVisible ||
-    clockSettingsVisible;
+    clockSettingsVisible ||
+    appearanceVisible;
   const { height, width } = useWindowDimensions();
   const boardSize = Math.floor(
     Math.min(width - 24, Math.max(236, height - 430), 520),
@@ -1604,6 +1627,14 @@ export function PlayScreen() {
                 setProfilesVisible(true);
               }}
             />
+            <DrawerItem
+              detail={`${appTheme.label} · ${boardSkin.label} · ${pieceSkin.label}`}
+              label="外观设置"
+              onPress={() => {
+                setDrawerVisible(false);
+                setAppearanceVisible(true);
+              }}
+            />
             {activeSeries || gameMode === 'ai' ? (
               <Text style={styles.drawerNote}>
                 {activeSeries
@@ -1625,6 +1656,17 @@ export function PlayScreen() {
         onApply={handleApplyClockConfig}
         onClose={() => setClockSettingsVisible(false)}
         visible={clockSettingsVisible}
+      />
+
+      <AppearanceSettingsModal
+        appThemeId={settings.appThemeId}
+        boardSkinId={settings.boardSkinId}
+        onApplyAppTheme={setAppThemeId}
+        onApplyBoardSkin={setBoardSkinId}
+        onApplyPieceSkin={setPieceSkinId}
+        onClose={() => setAppearanceVisible(false)}
+        pieceSkinId={settings.pieceSkinId}
+        visible={appearanceVisible}
       />
 
       <Modal
@@ -1902,6 +1944,9 @@ function ControlButton({
   label,
   onPress,
 }: ControlButtonProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -1938,6 +1983,9 @@ function BottomNavigationItem({
   label,
   onPress,
 }: NavigationItemProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -1975,6 +2023,9 @@ function DrawerItem({
   label,
   onPress,
 }: NavigationItemProps & { detail: string }) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -2019,6 +2070,9 @@ function ProfileChoice({
   onPress,
   selected,
 }: ProfileChoiceProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       disabled={disabled}
@@ -2042,19 +2096,224 @@ function ProfileChoice({
   );
 }
 
-const styles = StyleSheet.create({
+type AppearanceSettingsModalProps = {
+  appThemeId: ThemeId;
+  boardSkinId: BoardSkinId;
+  onApplyAppTheme: (id: ThemeId) => void;
+  onApplyBoardSkin: (id: BoardSkinId) => void;
+  onApplyPieceSkin: (id: PieceSkinId) => void;
+  onClose: () => void;
+  pieceSkinId: PieceSkinId;
+  visible: boolean;
+};
+
+function AppearanceSettingsModal({
+  appThemeId,
+  boardSkinId,
+  onApplyAppTheme,
+  onApplyBoardSkin,
+  onApplyPieceSkin,
+  onClose,
+  pieceSkinId,
+  visible,
+}: AppearanceSettingsModalProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <View style={styles.modalBackdrop}>
+        <View accessibilityViewIsModal style={styles.appearanceDialog}>
+          <View style={styles.appearanceHeader}>
+            <View style={styles.appearanceHeaderText}>
+              <Text style={styles.dialogTitle}>外观设置</Text>
+              <Text style={styles.dialogDescription}>
+                UI 主题、棋盘和棋子会分别保存到本机。
+              </Text>
+            </View>
+            <Pressable onPress={onClose} style={styles.drawerClose}>
+              <Text style={styles.drawerCloseText}>关闭</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.appearanceContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.playerSideLabel}>全软件 UI 主题</Text>
+            <View style={styles.appearanceGrid}>
+              {APP_THEME_OPTIONS.map((option) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={option.id}
+                  onPress={() => onApplyAppTheme(option.id)}
+                  style={[
+                    styles.appearanceChoice,
+                    appThemeId === option.id &&
+                      styles.selectedAppearanceChoice,
+                  ]}
+                >
+                  <View style={styles.themeSwatches}>
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: option.screen },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: option.surface },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: option.accent },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.appearanceChoiceTitle}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.playerSideLabel}>棋盘皮肤</Text>
+            <View style={styles.appearanceGrid}>
+              {BOARD_SKIN_OPTIONS.map((option) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={option.id}
+                  onPress={() => onApplyBoardSkin(option.id)}
+                  style={[
+                    styles.appearanceChoice,
+                    boardSkinId === option.id &&
+                      styles.selectedAppearanceChoice,
+                  ]}
+                >
+                  <BoardSkinPreview skin={option} />
+                  <Text style={styles.appearanceChoiceTitle}>
+                    {option.label}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.appearanceChoiceMeta}>
+                    {option.description}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.playerSideLabel}>棋子皮肤</Text>
+            <View style={styles.appearanceGrid}>
+              {PIECE_SKIN_OPTIONS.map((option) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={option.id}
+                  onPress={() => onApplyPieceSkin(option.id)}
+                  style={[
+                    styles.appearanceChoice,
+                    pieceSkinId === option.id &&
+                      styles.selectedAppearanceChoice,
+                  ]}
+                >
+                  <View style={styles.piecePreviewRow}>
+                    <Text
+                      style={[
+                        styles.piecePreview,
+                        {
+                          color: option.white,
+                          fontFamily: option.family,
+                          textShadowColor: option.whiteShadow,
+                        },
+                      ]}
+                    >
+                      ♔
+                    </Text>
+                    <Text
+                      style={[
+                        styles.piecePreview,
+                        {
+                          color: option.black,
+                          fontFamily: option.family,
+                          textShadowColor: option.blackShadow,
+                        },
+                      ]}
+                    >
+                      ♞
+                    </Text>
+                  </View>
+                  <Text style={styles.appearanceChoiceTitle}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function BoardSkinPreview({ skin }: { skin: BoardSkin }) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+  const previewSquares = [
+    skin.lightSquare,
+    skin.darkSquare,
+    skin.darkSquare,
+    skin.lightSquare,
+  ];
+
+  return (
+    <View style={[styles.boardSkinPreview, { borderColor: skin.border }]}>
+      {previewSquares.map((color, index) => (
+        <View
+          key={`${skin.id}-${index}`}
+          style={[
+            styles.boardSkinPreviewSquare,
+            { backgroundColor: color },
+            index === 1 && { backgroundColor: skin.lastMove },
+            index === 2 && {
+              borderColor: skin.selected,
+              borderWidth: 2,
+            },
+          ]}
+        >
+          {index === 3 ? (
+            <View
+              style={[
+                styles.boardSkinPreviewDot,
+                { backgroundColor: skin.moveTarget },
+              ]}
+            />
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   loadingScreen: {
     alignItems: 'center',
-    backgroundColor: '#171a18',
+    backgroundColor: theme.screen,
     flex: 1,
     justifyContent: 'center',
   },
   loadingText: {
-    color: '#b8bfb6',
+    color: theme.mutedText,
     fontSize: 14,
   },
   screen: {
-    backgroundColor: '#171a18',
+    backgroundColor: theme.screen,
     flex: 1,
   },
   gameScroll: {
@@ -2078,19 +2337,20 @@ const styles = StyleSheet.create({
     marginLeft: 11,
   },
   title: {
-    color: '#f4f1e8',
+    color: theme.text,
     fontSize: 23,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0,
   },
   subtitle: {
-    color: '#9ca49a',
+    color: theme.subtleText,
     fontSize: 11,
     marginTop: 1,
   },
   menuButton: {
     alignItems: 'center',
-    borderColor: '#424a42',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRadius: 11,
     borderWidth: 1,
     flexDirection: 'row',
@@ -2098,12 +2358,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   menuButtonIcon: {
-    color: '#d8a45a',
+    color: theme.accentStrong,
     fontSize: 19,
     fontWeight: '900',
   },
   menuButtonText: {
-    color: '#e5e2d9',
+    color: theme.text,
     fontSize: 11,
     fontWeight: '800',
     marginLeft: 6,
@@ -2115,8 +2375,8 @@ const styles = StyleSheet.create({
   },
   statusPanel: {
     alignItems: 'center',
-    backgroundColor: '#222722',
-    borderColor: '#343b34',
+    backgroundColor: theme.panel,
+    borderColor: theme.border,
     borderRadius: 11,
     borderWidth: 1,
     flexDirection: 'row',
@@ -2126,7 +2386,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   finishedStatusPanel: {
-    borderColor: '#8c6230',
+    borderColor: theme.accent,
   },
   turnMarker: {
     borderRadius: 999,
@@ -2136,24 +2396,24 @@ const styles = StyleSheet.create({
   },
   whiteTurnMarker: {
     backgroundColor: '#f6f2e6',
-    borderColor: '#6e756c',
+    borderColor: theme.subtleText,
     borderWidth: 2,
   },
   blackTurnMarker: {
     backgroundColor: '#20231f',
-    borderColor: '#aeb5ac',
+    borderColor: theme.mutedText,
     borderWidth: 2,
   },
   statusTextGroup: {
     flex: 1,
   },
   statusText: {
-    color: '#f3f0e7',
+    color: theme.text,
     fontSize: 15,
     fontWeight: '700',
   },
   feedbackText: {
-    color: '#aeb5ac',
+    color: theme.mutedText,
     fontSize: 11,
     marginTop: 2,
   },
@@ -2163,8 +2423,8 @@ const styles = StyleSheet.create({
     marginTop: 9,
   },
   bottomNavigation: {
-    backgroundColor: '#1d211e',
-    borderColor: '#343b34',
+    backgroundColor: theme.navigation,
+    borderColor: theme.border,
     borderTopWidth: 1,
     flexDirection: 'row',
     minHeight: 66,
@@ -2178,7 +2438,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   activeBottomNavigationItem: {
-    backgroundColor: '#292f29',
+    backgroundColor: theme.navigationActive,
   },
   disabledBottomNavigationItem: {
     opacity: 0.4,
@@ -2191,20 +2451,20 @@ const styles = StyleSheet.create({
     width: 24,
   },
   activeBottomNavigationMarker: {
-    backgroundColor: '#d49a43',
+    backgroundColor: theme.accentStrong,
   },
   bottomNavigationText: {
-    color: '#949c92',
+    color: theme.subtleText,
     fontSize: 11,
     fontWeight: '800',
   },
   activeBottomNavigationText: {
-    color: '#fff2dc',
+    color: theme.text,
   },
   controlButton: {
     alignItems: 'center',
-    backgroundColor: '#2a302a',
-    borderColor: '#424a42',
+    backgroundColor: theme.elevated,
+    borderColor: theme.border,
     borderRadius: 9,
     borderWidth: 1,
     flex: 1,
@@ -2213,30 +2473,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   controlButtonText: {
-    color: '#f0ede4',
+    color: theme.text,
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
   },
   disabledButton: {
-    backgroundColor: '#202420',
-    borderColor: '#2d322d',
+    backgroundColor: theme.disabledBg,
+    borderColor: theme.disabledBorder,
   },
   disabledButtonText: {
-    color: '#606760',
+    color: theme.disabledText,
   },
   pressedButton: {
-    opacity: 0.7,
+    opacity: theme.pressedOpacity,
     transform: [{ scale: 0.98 }],
   },
   drawerBackdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.66)',
+    backgroundColor: theme.backdrop,
     flex: 1,
     flexDirection: 'row',
   },
   drawerPanel: {
-    backgroundColor: '#1d221e',
-    borderColor: '#3d463d',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRightWidth: 1,
     maxWidth: 360,
     paddingBottom: 24,
@@ -2253,39 +2513,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   drawerEyebrow: {
-    color: '#d49a43',
+    color: theme.accentStrong,
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 0,
   },
   drawerTitle: {
-    color: '#f4f1e8',
+    color: theme.text,
     fontSize: 25,
     fontWeight: '900',
     marginTop: 2,
   },
   drawerClose: {
-    borderColor: '#454d45',
+    backgroundColor: theme.elevated,
+    borderColor: theme.border,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   drawerCloseText: {
-    color: '#cbd0c8',
+    color: theme.mutedText,
     fontSize: 11,
     fontWeight: '800',
   },
   drawerDescription: {
-    color: '#90988f',
+    color: theme.subtleText,
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 14,
     marginTop: 9,
   },
   drawerItem: {
-    backgroundColor: '#272d27',
-    borderColor: '#3f483f',
+    backgroundColor: theme.panel,
+    borderColor: theme.border,
     borderRadius: 11,
     borderWidth: 1,
     marginBottom: 9,
@@ -2294,36 +2555,36 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   disabledDrawerItem: {
-    backgroundColor: '#202420',
-    borderColor: '#2d322d',
+    backgroundColor: theme.disabledBg,
+    borderColor: theme.disabledBorder,
   },
   drawerItemLabel: {
-    color: '#f1eee5',
+    color: theme.text,
     fontSize: 14,
     fontWeight: '900',
   },
   drawerItemDetail: {
-    color: '#9ba39a',
+    color: theme.subtleText,
     fontSize: 10,
     lineHeight: 15,
     marginTop: 4,
   },
   drawerNote: {
-    color: '#c59b62',
+    color: theme.warning,
     fontSize: 10,
     lineHeight: 16,
     marginTop: 4,
   },
   modalBackdrop: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.76)',
+    backgroundColor: theme.overlay,
     flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
   dialog: {
-    backgroundColor: '#242924',
-    borderColor: '#4a5149',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRadius: 16,
     borderWidth: 1,
     maxWidth: 420,
@@ -2331,13 +2592,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dialogTitle: {
-    color: '#f4f1e8',
+    color: theme.text,
     fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
   },
   dialogDescription: {
-    color: '#aeb5ac',
+    color: theme.mutedText,
     fontSize: 14,
     marginTop: 6,
     textAlign: 'center',
@@ -2349,30 +2610,30 @@ const styles = StyleSheet.create({
   },
   promotionButton: {
     alignItems: 'center',
-    backgroundColor: '#333a33',
+    backgroundColor: theme.elevated,
     borderRadius: 10,
     flex: 1,
     paddingVertical: 10,
   },
   promotionSymbol: {
-    color: '#fffdf3',
+    color: theme.text,
     fontFamily: 'serif',
     fontSize: 36,
   },
   promotionLabel: {
-    color: '#d9ddd5',
+    color: theme.mutedText,
     fontSize: 12,
     marginTop: 2,
   },
   resultEyebrow: {
-    color: '#d49a43',
+    color: theme.accentStrong,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 0,
     textAlign: 'center',
   },
   resultTitle: {
-    color: '#f8f3e8',
+    color: theme.text,
     fontSize: 30,
     fontWeight: '900',
     marginTop: 7,
@@ -2380,7 +2641,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#b8792c',
+    backgroundColor: theme.accent,
     borderRadius: 10,
     justifyContent: 'center',
     marginTop: 18,
@@ -2388,13 +2649,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   primaryButtonText: {
-    color: '#fff7e8',
+    color: theme.onAccent,
     fontSize: 15,
     fontWeight: '800',
   },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: '#525a51',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
@@ -2403,7 +2665,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   secondaryButtonText: {
-    color: '#e8e5dc',
+    color: theme.text,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -2413,12 +2675,12 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   textButtonLabel: {
-    color: '#d1a356',
+    color: theme.accentStrong,
     fontSize: 13,
     fontWeight: '700',
   },
   playerSideLabel: {
-    color: '#d9ddd5',
+    color: theme.text,
     fontSize: 12,
     fontWeight: '800',
     marginTop: 16,
@@ -2434,7 +2696,8 @@ const styles = StyleSheet.create({
   },
   profileChoice: {
     alignItems: 'center',
-    borderColor: '#4a5149',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
@@ -2444,17 +2707,17 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   selectedProfileChoice: {
-    backgroundColor: '#8c6230',
-    borderColor: '#d49a43',
+    backgroundColor: theme.accentMuted,
+    borderColor: theme.accentStrong,
   },
   profileChoiceText: {
-    color: '#efede4',
+    color: theme.text,
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
   },
   modeNote: {
-    color: '#aeb5ac',
+    color: theme.mutedText,
     fontSize: 10,
     lineHeight: 16,
     marginTop: 12,
@@ -2463,4 +2726,99 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-});
+  appearanceDialog: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    maxHeight: '86%',
+    maxWidth: 520,
+    padding: 18,
+    width: '100%',
+  },
+  appearanceHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  appearanceHeaderText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  appearanceContent: {
+    paddingBottom: 8,
+  },
+  appearanceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  appearanceChoice: {
+    backgroundColor: theme.panel,
+    borderColor: theme.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    minHeight: 86,
+    padding: 10,
+    width: '48%',
+  },
+  selectedAppearanceChoice: {
+    backgroundColor: theme.navigationActive,
+    borderColor: theme.accentStrong,
+  },
+  appearanceChoiceTitle: {
+    color: theme.text,
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 7,
+  },
+  appearanceChoiceMeta: {
+    color: theme.subtleText,
+    fontSize: 9,
+    lineHeight: 13,
+    marginTop: 3,
+  },
+  themeSwatches: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  themeSwatch: {
+    borderColor: theme.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 24,
+    width: 24,
+  },
+  boardSkinPreview: {
+    borderRadius: 7,
+    borderWidth: 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    height: 46,
+    overflow: 'hidden',
+    width: 46,
+  },
+  boardSkinPreviewSquare: {
+    alignItems: 'center',
+    height: 21,
+    justifyContent: 'center',
+    width: 21,
+  },
+  boardSkinPreviewDot: {
+    borderRadius: 999,
+    height: 8,
+    width: 8,
+  },
+  piecePreviewRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  piecePreview: {
+    fontSize: 31,
+    lineHeight: 36,
+    textShadowOffset: { height: 0, width: 0 },
+    textShadowRadius: 2,
+  },
+  });
+}

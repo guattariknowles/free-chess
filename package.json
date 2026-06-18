@@ -1,6 +1,6 @@
 {
   "name": "free-chess",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "Offline-first Android chess board and teaching app",
   "license": "MIT",
   "main": "index.ts",

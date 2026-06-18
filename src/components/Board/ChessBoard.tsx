@@ -1,4 +1,4 @@
-import type { Color, PieceSymbol, Square } from 'chess.js';
+import type { Square } from 'chess.js';
 import { memo, useMemo } from 'react';
 import {
   Pressable,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import type { BoardPiece, LegalMove } from '../../game/chessState';
+import { useTheme } from '../../theme';
 import {
   getBoardSquares,
   isLightSquare,
@@ -27,25 +28,6 @@ type ChessBoardProps = {
   size: number;
 };
 
-const PIECES: Record<Color, Record<PieceSymbol, string>> = {
-  b: {
-    b: '♝',
-    k: '♚',
-    n: '♞',
-    p: '♟',
-    q: '♛',
-    r: '♜',
-  },
-  w: {
-    b: '♗',
-    k: '♔',
-    n: '♘',
-    p: '♙',
-    q: '♕',
-    r: '♖',
-  },
-};
-
 function ChessBoardComponent({
   board,
   faceToFacePieces = false,
@@ -57,6 +39,7 @@ function ChessBoardComponent({
   selectedSquare,
   size,
 }: ChessBoardProps) {
+  const { boardSkin, pieceSkin } = useTheme();
   const squares = useMemo(() => getBoardSquares(flipped), [flipped]);
   const pieces = useMemo(
     () => new Map(board.map((piece) => [piece.square, piece])),
@@ -75,7 +58,15 @@ function ChessBoardComponent({
   return (
     <View
       accessibilityLabel="国际象棋棋盘"
-      style={[styles.board, { height: size, width: size }]}
+      style={[
+        styles.board,
+        {
+          backgroundColor: boardSkin.border,
+          borderColor: boardSkin.border,
+          height: size,
+          width: size,
+        },
+      ]}
     >
       {squares.map((rank, rowIndex) => (
         <View key={rank[0][1]} style={styles.row}>
@@ -89,23 +80,29 @@ function ChessBoardComponent({
               styles.square,
               {
                 backgroundColor: isLightSquare(square)
-                  ? '#e7dfc8'
-                  : '#78906a',
+                  ? boardSkin.lightSquare
+                  : boardSkin.darkSquare,
                 height: cellSize,
                 width: cellSize,
               },
             ];
 
             if (isLastMove) {
-              squareStyle.push(styles.lastMoveSquare);
+              squareStyle.push({ backgroundColor: boardSkin.lastMove });
             }
 
             if (selected) {
-              squareStyle.push(styles.selectedSquare);
+              squareStyle.push({
+                borderColor: boardSkin.selected,
+                borderWidth: 4,
+              });
             }
 
             if (highlighted.has(square)) {
-              squareStyle.push(styles.problemSquare);
+              squareStyle.push({
+                borderColor: boardSkin.problem,
+                borderWidth: 4,
+              });
             }
 
             return (
@@ -124,9 +121,11 @@ function ChessBoardComponent({
                     pointerEvents="none"
                     style={[
                       styles.rankLabel,
-                      isLightSquare(square)
-                        ? styles.darkCoordinate
-                        : styles.lightCoordinate,
+                      {
+                        color: isLightSquare(square)
+                          ? boardSkin.coordinateDark
+                          : boardSkin.coordinateLight,
+                      },
                     ]}
                   >
                     {square[1]}
@@ -138,9 +137,11 @@ function ChessBoardComponent({
                     pointerEvents="none"
                     style={[
                       styles.fileLabel,
-                      isLightSquare(square)
-                        ? styles.darkCoordinate
-                        : styles.lightCoordinate,
+                      {
+                        color: isLightSquare(square)
+                          ? boardSkin.coordinateDark
+                          : boardSkin.coordinateLight,
+                      },
                     ]}
                   >
                     {square[0]}
@@ -154,12 +155,23 @@ function ChessBoardComponent({
                     style={[
                       styles.piece,
                       {
+                        fontFamily: pieceSkin.family,
                         fontSize: cellSize * 0.76,
                         lineHeight: cellSize * 0.9,
                       },
                       piece.color === 'w'
-                        ? styles.whitePiece
-                        : styles.blackPiece,
+                        ? {
+                            color: pieceSkin.white,
+                            textShadowColor: pieceSkin.whiteShadow,
+                            textShadowOffset: { height: 1, width: 0 },
+                            textShadowRadius: 2,
+                          }
+                        : {
+                            color: pieceSkin.black,
+                            textShadowColor: pieceSkin.blackShadow,
+                            textShadowOffset: { height: 0, width: 0 },
+                            textShadowRadius: 1,
+                          },
                       faceToFacePieces &&
                         shouldRotatePieceForFaceToFace(
                           piece.color,
@@ -168,18 +180,21 @@ function ChessBoardComponent({
                         styles.facingAwayPiece,
                     ]}
                   >
-                    {PIECES[piece.color][piece.type]}
+                    {pieceSkin.symbols[piece.color][piece.type]}
                   </Text>
                 ) : null}
 
                 {legalMove ? (
                   <View
                     pointerEvents="none"
-                    style={
+                    style={[
                       legalMove.captured
                         ? styles.captureTarget
-                        : styles.moveTarget
-                    }
+                        : styles.moveTarget,
+                      legalMove.captured
+                        ? { borderColor: boardSkin.captureTarget }
+                        : { backgroundColor: boardSkin.moveTarget },
+                    ]}
                   />
                 ) : null}
               </Pressable>
@@ -196,8 +211,6 @@ export const ChessBoard = memo(ChessBoardComponent);
 const styles = StyleSheet.create({
   board: {
     alignSelf: 'center',
-    backgroundColor: '#111411',
-    borderColor: '#393f39',
     borderRadius: 4,
     borderWidth: 2,
     overflow: 'hidden',
@@ -209,46 +222,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedSquare: {
-    borderColor: '#f1aa3c',
-    borderWidth: 4,
-  },
-  problemSquare: {
-    borderColor: '#ef725f',
-    borderWidth: 4,
-  },
-  lastMoveSquare: {
-    backgroundColor: '#b9a852',
-  },
   piece: {
-    fontFamily: 'serif',
     textAlign: 'center',
     textAlignVertical: 'center',
-  },
-  whitePiece: {
-    color: '#fffdf3',
-    textShadowColor: '#1f241f',
-    textShadowOffset: { height: 1, width: 0 },
-    textShadowRadius: 2,
-  },
-  blackPiece: {
-    color: '#20241f',
-    textShadowColor: '#eef0e7',
-    textShadowOffset: { height: 0, width: 0 },
-    textShadowRadius: 1,
   },
   facingAwayPiece: {
     transform: [{ rotate: '180deg' }],
   },
   moveTarget: {
-    backgroundColor: 'rgba(24, 43, 27, 0.45)',
     borderRadius: 999,
     height: '28%',
     position: 'absolute',
     width: '28%',
   },
   captureTarget: {
-    borderColor: 'rgba(126, 48, 39, 0.7)',
     borderRadius: 999,
     borderWidth: 5,
     height: '84%',
@@ -268,11 +255,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     position: 'absolute',
     right: 3,
-  },
-  darkCoordinate: {
-    color: '#506046',
-  },
-  lightCoordinate: {
-    color: '#edf0df',
   },
 });

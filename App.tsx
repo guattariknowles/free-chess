@@ -2,10 +2,21 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 
 import { PlayScreen } from './src/screens/PlayScreen';
+import { ThemeProvider, useTheme } from './src/theme';
 
 export default function App() {
   return (
-    <View style={styles.container}>
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+}
+
+function AppShell() {
+  const { appTheme } = useTheme();
+
+  return (
+    <View style={[styles.container, { backgroundColor: appTheme.screen }]}>
       <StatusBar style="light" />
       <PlayScreen />
     </View>

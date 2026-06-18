@@ -113,8 +113,9 @@ Stockfish 的来源、GPL v3 许可证和网络校验值见
 互动教学、阶段 8 AI 对弈挑战与 PGN 导入已经完成。阶段 9 Android
 本地 Stockfish 已发布 `1.9.0` 测试版供实体手机验收；在 `arm64`
 实体手机通过前，阶段 9 仍不能标记为完整交付。阶段 10 离线棋局分析
-的功能代码已完成，支持导入棋谱后查看每步 Stockfish 评分、推荐下法，
-并统计双方与 Stockfish 首选走法的重合度，但尚未随新版 APK 做真机验收。
+已随 `1.10.0` 本地测试 APK 完成模拟器初测。阶段 11 全软件主题与
+棋盘/棋子皮肤已随 `1.11.0` 本地测试 APK 交付，支持 5 套 UI 主题、
+12 套棋盘皮肤和 5 套棋子皮肤。
 
 完整计划见 [ROADMAP.md](ROADMAP.md)。
 
@@ -124,6 +125,7 @@ Stockfish 的来源、GPL v3 许可证和网络校验值见
 ## 下载 Android 测试版
 
 - [GitHub Releases](https://github.com/guattariknowles/free-chess/releases)
+- [直接下载 Free Chess 1.11.0 主题与皮肤测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.11.0/free-chess-1.11.0-2026-06-18-local.apk)
 - [直接下载 Free Chess 1.10.0 离线棋局分析测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.10.0/free-chess-1.10.0-2026-06-18-local.apk)
 - [直接下载 Free Chess 1.9.0 Stockfish 测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.9.0/free-chess-1.9.0-2026-06-15-local.apk)
 - [直接下载 Free Chess 1.8.0 本地测试 APK](https://github.com/guattariknowles/free-chess/releases/download/v1.8.0/free-chess-1.8.0-2026-06-13-local.apk)
@@ -175,6 +177,12 @@ D74F35F18F75D2F5D11C1E16D4E58A18904BDBCF9F69D75652818F596717EF2B
 
 ```text
 2B77B401269066E9691E786C000A222F2C1723F769945EE9FC755AE044BE3509
+```
+
+`1.11.0` 主题与皮肤测试 APK 的 SHA-256：
+
+```text
+AFA422E6F241ACD490D11500ECF1E848C75DA18E05BF1F8BB01A71434C9FE012
 ```
 
 `1.4.0` EAS APK 的 SHA-256：

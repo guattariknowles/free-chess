@@ -1,7 +1,9 @@
 import type { Color } from 'chess.js';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatClockTime } from '../../game/clockState';
+import { useTheme, type AppTheme } from '../../theme';
 
 type PlayerClockPanelProps = {
   color: Color;
@@ -37,6 +39,8 @@ export function PlayerClockPanel({
   timeMs,
   timedOut,
 }: PlayerClockPanelProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
   const lowTime = timeMs !== null && timeMs <= 30_000;
   let stateLabel = '等待对方';
 
@@ -112,6 +116,9 @@ function PlayerAction({
   label,
   onPress,
 }: PlayerActionProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -135,11 +142,12 @@ function PlayerAction({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   panel: {
     alignItems: 'center',
-    backgroundColor: '#222722',
-    borderColor: '#343b34',
+    backgroundColor: theme.panel,
+    borderColor: theme.border,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -148,7 +156,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   activePanel: {
-    borderColor: '#d49a43',
+    borderColor: theme.accentStrong,
   },
   facingAway: {
     transform: [{ rotate: '180deg' }],
@@ -166,26 +174,26 @@ const styles = StyleSheet.create({
   },
   whiteMarker: {
     backgroundColor: '#f6f2e6',
-    borderColor: '#747a72',
+    borderColor: theme.subtleText,
     borderWidth: 2,
   },
   blackMarker: {
     backgroundColor: '#171a17',
-    borderColor: '#b5bbb2',
+    borderColor: theme.mutedText,
     borderWidth: 2,
   },
   playerName: {
-    color: '#f3f0e7',
+    color: theme.text,
     fontSize: 15,
     fontWeight: '800',
   },
   stateLabel: {
-    color: '#90988f',
+    color: theme.subtleText,
     fontSize: 10,
     marginTop: 1,
   },
   clock: {
-    color: '#f5f1e7',
+    color: theme.text,
     fontSize: 28,
     fontVariant: ['tabular-nums'],
     fontWeight: '800',
@@ -193,7 +201,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   lowTime: {
-    color: '#ef725f',
+    color: theme.danger,
   },
   actions: {
     flex: 1,
@@ -203,8 +211,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#303630',
-    borderColor: '#444c44',
+    backgroundColor: theme.elevated,
+    borderColor: theme.border,
     borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
@@ -213,19 +221,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   actionText: {
-    color: '#ebe8df',
+    color: theme.text,
     fontSize: 12,
     fontWeight: '700',
   },
   disabledButton: {
-    backgroundColor: '#202420',
-    borderColor: '#2d322d',
+    backgroundColor: theme.disabledBg,
+    borderColor: theme.disabledBorder,
   },
   disabledButtonText: {
-    color: '#5f665f',
+    color: theme.disabledText,
   },
   pressedButton: {
-    opacity: 0.7,
+    opacity: theme.pressedOpacity,
     transform: [{ scale: 0.98 }],
   },
-});
+  });
+}

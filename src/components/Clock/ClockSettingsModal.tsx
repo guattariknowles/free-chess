@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -13,6 +13,7 @@ import {
   getClockConfigLabel,
   NO_CLOCK_CONFIG,
 } from '../../game/clockState';
+import { useTheme, type AppTheme } from '../../theme';
 
 type ClockSettingsModalProps = {
   config: ClockConfig;
@@ -42,6 +43,8 @@ export function ClockSettingsModal({
   onClose,
   visible,
 }: ClockSettingsModalProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
   const [minutes, setMinutes] = useState('10');
   const [incrementSeconds, setIncrementSeconds] = useState('0');
   const [error, setError] = useState('');
@@ -159,6 +162,9 @@ function ClockOption({
   label,
   onPress,
 }: ClockOptionProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -185,6 +191,9 @@ function NumberField({
   onChangeText,
   value,
 }: NumberFieldProps) {
+  const { appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -201,17 +210,18 @@ function NumberField({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   backdrop: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.76)',
+    backgroundColor: theme.overlay,
     flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
   dialog: {
-    backgroundColor: '#242924',
-    borderColor: '#4a5149',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderRadius: 16,
     borderWidth: 1,
     maxWidth: 440,
@@ -219,19 +229,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    color: '#f4f1e8',
+    color: theme.text,
     fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
   },
   current: {
-    color: '#aeb5ac',
+    color: theme.mutedText,
     fontSize: 13,
     marginTop: 5,
     textAlign: 'center',
   },
   sectionTitle: {
-    color: '#d9ddd5',
+    color: theme.text,
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
@@ -243,8 +253,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   option: {
-    backgroundColor: '#323832',
-    borderColor: '#454d45',
+    backgroundColor: theme.elevated,
+    borderColor: theme.border,
     borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -252,12 +262,12 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   optionLabel: {
-    color: '#f3f0e7',
+    color: theme.text,
     fontSize: 16,
     fontWeight: '800',
   },
   optionDescription: {
-    color: '#929a91',
+    color: theme.subtleText,
     fontSize: 11,
     marginTop: 2,
   },
@@ -269,16 +279,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldLabel: {
-    color: '#969e95',
+    color: theme.subtleText,
     fontSize: 11,
     marginBottom: 5,
   },
   input: {
-    backgroundColor: '#171a18',
-    borderColor: '#4a5149',
+    backgroundColor: theme.screen,
+    borderColor: theme.border,
     borderRadius: 9,
     borderWidth: 1,
-    color: '#f4f1e8',
+    color: theme.text,
     fontSize: 18,
     fontWeight: '700',
     paddingHorizontal: 12,
@@ -286,7 +296,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   error: {
-    color: '#ef725f',
+    color: theme.danger,
     fontSize: 12,
     marginTop: 8,
   },
@@ -297,7 +307,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#454d45',
+    borderColor: theme.border,
     borderRadius: 9,
     borderWidth: 1,
     flex: 1,
@@ -305,13 +315,13 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   cancelText: {
-    color: '#c4cac1',
+    color: theme.mutedText,
     fontSize: 14,
     fontWeight: '700',
   },
   applyButton: {
     alignItems: 'center',
-    backgroundColor: '#b8792c',
+    backgroundColor: theme.accent,
     borderRadius: 9,
     flex: 2,
     justifyContent: 'center',
@@ -319,12 +329,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   applyText: {
-    color: '#fff7e8',
+    color: theme.onAccent,
     fontSize: 14,
     fontWeight: '800',
   },
   pressedButton: {
-    opacity: 0.7,
+    opacity: theme.pressedOpacity,
     transform: [{ scale: 0.98 }],
   },
-});
+  });
+}
