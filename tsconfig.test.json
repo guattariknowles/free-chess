@@ -39,6 +39,9 @@
     "src/game/series.ts",
     "src/game/series.test.ts",
     "src/game/userProfile.ts",
-    "src/game/userProfile.test.ts"
+    "src/game/userProfile.test.ts",
+    "src/theme/skins.ts",
+    "src/theme/skins.test.ts",
+    "src/theme/types.ts"
   ]
 }

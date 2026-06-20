@@ -26,7 +26,8 @@ export type PieceSkinId =
   | 'tournamentInk'
   | 'copperEtched'
   | 'neonGlyph'
-  | 'softAnime';
+  | 'softAnime'
+  | 'teachingLarge';
 
 export type AppTheme = {
   accent: string;

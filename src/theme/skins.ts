@@ -385,6 +385,16 @@ export const PIECE_SKINS: Record<PieceSkinId, PieceSkin> = {
     white: '#ffffff',
     whiteShadow: '#517fa2',
   },
+  teachingLarge: {
+    black: '#111915',
+    blackShadow: '#f8f2df',
+    family: 'serif',
+    id: 'teachingLarge',
+    label: '教学大图标',
+    symbols: CLASSIC_SYMBOLS,
+    white: '#fff8e6',
+    whiteShadow: '#111915',
+  },
 };
 
 export const APP_THEME_OPTIONS = Object.values(APP_THEMES);
